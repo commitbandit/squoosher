@@ -39,6 +39,7 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
 
   const [transferTxId, setTransferTxId] = useState<string | null>(null);
 
+  //TODO: add metadata
   const handleMint = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
