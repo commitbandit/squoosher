@@ -3,53 +3,26 @@
 import { Form } from "@heroui/form";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
-import {
-  Keypair,
-  PublicKey,
-  VersionedTransaction,
-  TransactionMessage,
-} from "@solana/web3.js";
+import { PublicKey } from "@solana/web3.js";
 import { useCallback, useState } from "react";
-import {
-  createRpc,
-  pickRandomTreeAndQueue,
-  sendAndConfirmTx,
-} from "@lightprotocol/stateless.js";
 import { Card, CardBody, CardFooter } from "@heroui/card";
-import {
-  CompressedTokenProgram,
-  transfer,
-  compress,
-} from "@lightprotocol/compressed-token";
 import { addToast } from "@heroui/toast";
-import {
-  mintTo as mintToSpl,
-  getOrCreateAssociatedTokenAccount,
-  ExtensionType,
-  TYPE_SIZE,
-  LENGTH_SIZE,
-  getMintLen,
-  createInitializeMetadataPointerInstruction,
-  TOKEN_2022_PROGRAM_ID,
-  Account,
-} from "@solana/spl-token";
-import {
-  createInitializeInstruction,
-  pack,
-  TokenMetadata,
-} from "@solana/spl-token-metadata";
+import { Account } from "@solana/spl-token";
 
 import { CopyIcon, CircleCheckIcon, ForbiddenCircleIcon } from "../icons";
 
-import { usePayerContext } from "@/contexts/payer-context";
-import { DEVNET_RPC_URL } from "@/config";
+import {
+  compressedMintSplToken,
+  regularMintSplToken,
+} from "@/services/spl-token";
+import { useWallet } from "@/contexts/wallet-context";
 
 interface MintData {
   mint: PublicKey;
   mintTxId: string;
-  compressedTokenTxId: string;
   decimals: number;
   ata: Account;
+  compressedTokenTxId?: string;
 }
 interface MintSpl2022Props {
   compressionEnabled?: boolean;
@@ -58,19 +31,21 @@ interface MintSpl2022Props {
 export default function MintSplToken2022({
   compressionEnabled = false,
 }: MintSpl2022Props) {
-  const { payer, fetchSolBalance, balance } = usePayerContext();
+  const { state, fetchBalance, balance } = useWallet();
   const [isMinting, setIsMinting] = useState(false);
-  const [isTransferring, setIsTransferring] = useState(false);
   const [mintData, setMintData] = useState<MintData | null>(null);
-  const [transferTxId, setTransferTxId] = useState<string | null>(null);
   const [additionalMetadataPairs, setAdditionalMetadataPairs] = useState<
     [string, string][]
   >([["", ""]]);
+  const [uriInput, setUriInput] = useState<string>("");
+  const [imageError, setImageError] = useState<string | null>(null);
 
   const handleMint = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      //TODO: now app not working, because need fix compressedMintSplToken regularMintSplToken
+      if (!state?.keypair) return;
       try {
-        e.preventDefault();
         setIsMinting(true);
         const formData = new FormData(e.currentTarget);
         const mintAmount = formData.get("mintAmount") as string;
@@ -87,132 +62,36 @@ export default function MintSplToken2022({
         const mintAmountNumber = parseInt(mintAmount);
         const decimalsNumber = parseInt(decimals);
 
-        const mint = Keypair.generate();
+        let mintData: MintData | null = null;
 
-        const metadata: TokenMetadata = {
-          mint: mint.publicKey,
-          name,
-          symbol,
-          uri,
-          additionalMetadata: filteredMetadata,
-        };
-
-        const connection = createRpc(
-          DEVNET_RPC_URL,
-          DEVNET_RPC_URL,
-          DEVNET_RPC_URL,
-        );
-
-        const mintLen = getMintLen([ExtensionType.MetadataPointer]);
-
-        const metadataLen = TYPE_SIZE + LENGTH_SIZE + pack(metadata).length;
-        const activeStateTrees =
-          await connection.getCachedActiveStateTreeInfo();
-        const { tree } = pickRandomTreeAndQueue(activeStateTrees);
-
-        const mintLamports = await connection.getMinimumBalanceForRentExemption(
-          mintLen + metadataLen,
-        );
-
-        const [createMintAccountIx, initializeMintIx, createTokenPoolIx] =
-          await CompressedTokenProgram.createMint({
-            feePayer: payer.publicKey,
-            authority: payer.publicKey,
-            mint: mint.publicKey,
+        if (compressionEnabled) {
+          mintData = await compressedMintSplToken({
+            mintAmount: mintAmountNumber,
             decimals: decimalsNumber,
-            freezeAuthority: null,
-            rentExemptBalance: mintLamports,
-            tokenProgramId: TOKEN_2022_PROGRAM_ID,
-            mintSize: mintLen,
+            name,
+            symbol,
+            uri,
+            additionalMetadata: filteredMetadata,
+            //TODO: Add payer
+            payer: state?.keypair,
+            isToken2022: true,
           });
+        } else {
+          mintData = await regularMintSplToken({
+            mintAmount: mintAmountNumber,
+            decimals: decimalsNumber,
+            name,
+            symbol,
+            uri,
+            additionalMetadata: filteredMetadata,
+            //TODO: Add payer
+            payer: state?.keypair,
+            isToken2022: false,
+          });
+        }
 
-        const instructions = [
-          createMintAccountIx,
-          createInitializeMetadataPointerInstruction(
-            mint.publicKey,
-            payer.publicKey,
-            mint.publicKey,
-            TOKEN_2022_PROGRAM_ID,
-          ),
-          initializeMintIx,
-          createInitializeInstruction({
-            programId: TOKEN_2022_PROGRAM_ID,
-            mint: mint.publicKey,
-            metadata: mint.publicKey,
-            name: metadata.name,
-            symbol: metadata.symbol,
-            uri: metadata.uri,
-            mintAuthority: payer.publicKey,
-            updateAuthority: payer.publicKey,
-          }),
-          createTokenPoolIx,
-        ];
-
-        const messageV0 = new TransactionMessage({
-          payerKey: payer.publicKey,
-          recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-          instructions,
-        }).compileToV0Message();
-
-        const mintTransaction = new VersionedTransaction(messageV0);
-
-        mintTransaction.sign([payer, mint]);
-
-        const txId = await sendAndConfirmTx(connection, mintTransaction);
-
-        console.log(`txId: ${txId}`);
-        const ata = await getOrCreateAssociatedTokenAccount(
-          connection,
-          payer,
-          mint.publicKey,
-          payer.publicKey,
-          undefined,
-          undefined,
-          undefined,
-          TOKEN_2022_PROGRAM_ID,
-        );
-
-        console.log(`ATA: ${ata.address}`);
-        /// Mint SPL
-        const mintTxId = await mintToSpl(
-          connection,
-          payer,
-          mint.publicKey,
-          ata.address,
-          payer.publicKey,
-          mintAmountNumber * 10 ** decimalsNumber, // Amount
-          undefined,
-          undefined,
-          TOKEN_2022_PROGRAM_ID,
-        );
-
-        console.log(`mint-spl success! txId: ${mintTxId}`);
-
-        const compressedTokenTxId = await compress(
-          connection,
-          payer,
-          mint.publicKey,
-          mintAmountNumber * 10 ** decimalsNumber, // Amount
-          payer,
-          ata.address,
-          payer.publicKey,
-          tree,
-          undefined,
-          TOKEN_2022_PROGRAM_ID,
-        );
-
-        console.log(`compressed-token success! txId: ${compressedTokenTxId}`);
-
-        await fetchSolBalance(payer.publicKey);
-
-        setMintData({
-          ata,
-          mint: mint.publicKey,
-          mintTxId,
-          compressedTokenTxId,
-          decimals: decimalsNumber,
-        });
-
+        await fetchBalance(state?.publicKey);
+        setMintData(mintData);
         console.log(
           `Minted ${mintAmountNumber} tokens using ${compressionEnabled ? "compressed" : "regular"} approach`,
         );
@@ -236,95 +115,13 @@ export default function MintSplToken2022({
         setIsMinting(false);
       }
     },
-    [compressionEnabled, fetchSolBalance, payer, additionalMetadataPairs],
-  );
-
-  const handleTransfer = useCallback(
-    async (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
-      if (!mintData) {
-        console.error("Mint data is not available");
-        addToast({
-          title: "Transfer Failed",
-          description: "Mint data is not available",
-          color: "danger",
-          icon: <ForbiddenCircleIcon />,
-        });
-
-        return;
-      }
-
-      const { mint, decimals } = mintData;
-
-      const connection = createRpc(
-        DEVNET_RPC_URL,
-        DEVNET_RPC_URL,
-        DEVNET_RPC_URL,
-      );
-
-      const formData = new FormData(e.currentTarget);
-      const transferAmount = formData.get("transferAmount") as string;
-      const recipientAddress = formData.get("recipientAddress") as string;
-      const tokenRecipient = new PublicKey(recipientAddress);
-
-      setIsTransferring(true);
-      try {
-        let txId: string;
-
-        if (compressionEnabled) {
-          // Use compressed token transfer
-          txId = await transfer(
-            connection,
-            payer,
-            mint,
-            parseInt(transferAmount) * 10 ** decimals, // Amount
-            payer,
-            tokenRecipient,
-          );
-        } else {
-          // For regular tokens, need to create or get recipient's ATA
-          const recipientAta = await getOrCreateAssociatedTokenAccount(
-            connection,
-            payer,
-            mint,
-            tokenRecipient,
-          );
-
-          // Regular token transfer
-          txId = await transfer(
-            connection,
-            payer,
-            mint,
-            parseInt(transferAmount) * 10 ** decimals,
-            payer,
-            tokenRecipient,
-          );
-        }
-
-        await fetchSolBalance(payer.publicKey);
-
-        setTransferTxId(txId);
-
-        addToast({
-          title: "Transfer Successful",
-          description: `Successfully transferred ${transferAmount} tokens`,
-          color: "success",
-          icon: <CircleCheckIcon />,
-        });
-      } catch (error) {
-        console.error("Transaction error:", error);
-        addToast({
-          title: "Transfer Failed",
-          description:
-            error instanceof Error ? error.message : "Unknown error occurred",
-          color: "danger",
-          icon: <ForbiddenCircleIcon />,
-        });
-      } finally {
-        setIsTransferring(false);
-      }
-    },
-    [compressionEnabled, fetchSolBalance, mintData, payer],
+    [
+      additionalMetadataPairs,
+      compressionEnabled,
+      fetchBalance,
+      state?.keypair,
+      state?.publicKey,
+    ],
   );
 
   const addMetadataPair = () => {
@@ -345,6 +142,22 @@ export default function MintSplToken2022({
       newPairs.splice(index, 1);
       setAdditionalMetadataPairs(newPairs);
     }
+  };
+
+  const handleUriChange = (value: string) => {
+    setUriInput(value);
+    setImageError(null);
+  };
+
+  const handleImageError = () => {
+    setImageError("Failed to load image. Please check the URL.");
+  };
+
+  const clearForm = () => {
+    setMintData(null);
+    setAdditionalMetadataPairs([["", ""]]);
+    setUriInput("");
+    setImageError(null);
   };
 
   return (
@@ -384,10 +197,22 @@ export default function MintSplToken2022({
             />
             <Input
               isRequired
-              label="Token URI (Metadata URL)"
+              endContent={
+                uriInput &&
+                !imageError && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    alt="Token Preview"
+                    className="size-6 object-contain"
+                    src={uriInput}
+                    onError={handleImageError}
+                  />
+                )
+              }
+              label="Token URI (Image URL)"
               labelPlacement="outside"
               name="uri"
-              placeholder="https://example.com/metadata.json"
+              placeholder="https://example.com/image.png"
               type="text"
               validate={(value) => {
                 if (!value.trim()) {
@@ -396,6 +221,8 @@ export default function MintSplToken2022({
 
                 return null;
               }}
+              value={uriInput}
+              onValueChange={(value) => handleUriChange(value)}
             />
             <Input
               isRequired
@@ -495,15 +322,18 @@ export default function MintSplToken2022({
           <CardFooter className="flex gap-4 justify-end">
             <Button
               color="default"
-              isDisabled={isMinting || isTransferring}
+              isDisabled={isMinting}
               type="reset"
               variant="flat"
+              onPress={clearForm}
             >
               Reset
             </Button>
             <Button
               color="secondary"
-              isDisabled={isMinting || !!mintData || balance.readable < 0.001}
+              isDisabled={
+                isMinting || !!mintData || (balance?.readable ?? 0) < 0.001
+              }
               isLoading={isMinting}
               type="submit"
               variant="flat"
@@ -581,89 +411,6 @@ export default function MintSplToken2022({
               )}
             </CardBody>
           </Card>
-          <Form onSubmit={handleTransfer}>
-            <Card className="w-full">
-              <CardBody className="flex flex-col gap-4">
-                <Input
-                  isRequired
-                  label="Amount to Transfer"
-                  labelPlacement="outside"
-                  min="1"
-                  name="transferAmount"
-                  placeholder="10"
-                  step="1"
-                  type="number"
-                  validate={(value) => {
-                    const amount = parseInt(value);
-
-                    if (isNaN(amount) || amount <= 0) {
-                      return "Please enter a valid positive amount";
-                    }
-
-                    return null;
-                  }}
-                  onWheel={(event) => event.currentTarget.blur()}
-                />
-                <Input
-                  isRequired
-                  label="Recipient Address"
-                  labelPlacement="outside"
-                  name="recipientAddress"
-                  placeholder="Public key of the recipient"
-                  type="text"
-                  validate={(value) => {
-                    if (!value.trim()) {
-                      return "Please enter a recipient address";
-                    }
-
-                    return null;
-                  }}
-                />
-              </CardBody>
-              <CardFooter className="flex gap-4 justify-end">
-                <Button
-                  color="default"
-                  isDisabled={isTransferring}
-                  type="reset"
-                  variant="flat"
-                >
-                  Reset
-                </Button>
-                <Button
-                  color="secondary"
-                  isDisabled={isTransferring}
-                  isLoading={isTransferring}
-                  type="submit"
-                  variant="flat"
-                >
-                  {isTransferring ? "Processing..." : "Transfer"}
-                </Button>
-              </CardFooter>
-            </Card>
-          </Form>
-
-          {transferTxId && (
-            <Card>
-              <CardBody>
-                <p className="text-sm text-gray-500 font-medium">
-                  Transfer Transaction
-                </p>
-                <div className="font-mono text-sm flex items-center gap-2">
-                  {transferTxId}
-                  <Button
-                    isIconOnly
-                    size="sm"
-                    variant="light"
-                    onPress={() => {
-                      navigator.clipboard.writeText(transferTxId);
-                    }}
-                  >
-                    <CopyIcon size={16} />
-                  </Button>
-                </div>
-              </CardBody>
-            </Card>
-          )}
         </div>
       )}
     </div>

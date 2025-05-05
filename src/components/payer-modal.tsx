@@ -1,13 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  useDisclosure,
-} from "@heroui/modal";
+import { Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/modal";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
 import { Textarea } from "@heroui/input";
@@ -26,20 +20,6 @@ import {
 
 import { usePayerContext } from "@/contexts/payer-context";
 import { trimNumber } from "@/utils/numbers";
-
-export function PayerButton() {
-  const { isOpen, onOpen, onClose } = useDisclosure();
-
-  return (
-    <>
-      <Button color="secondary" size="sm" variant="solid" onPress={onOpen}>
-        Payer Settings
-      </Button>
-
-      <PayerModal isOpen={isOpen} onClose={onClose} />
-    </>
-  );
-}
 
 interface PayerModalProps {
   isOpen: boolean;

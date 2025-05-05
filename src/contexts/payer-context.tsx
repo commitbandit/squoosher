@@ -7,7 +7,6 @@ import {
   useCallback,
   ReactNode,
   useMemo,
-  useEffect,
 } from "react";
 import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import bs58 from "bs58";
@@ -47,14 +46,7 @@ const initialBalance = {
 };
 
 export const PayerProvider = ({ children }: { children: ReactNode }) => {
-  //TODO: REMOVE AFTER TESTING
-  const defaultPrivateKey = process.env.NEXT_PUBLIC_DEFAULT_PRIVATE_KEY;
-
-  const [payer, setPayer] = useState<Keypair>(
-    defaultPrivateKey
-      ? Keypair.fromSecretKey(bs58.decode(defaultPrivateKey))
-      : Keypair.generate(),
-  );
+  const [payer, setPayer] = useState<Keypair>(Keypair.generate());
   const [balance, setBalance] = useState<Balance>(initialBalance);
 
   const generateNewPayer = useCallback(() => {
@@ -131,12 +123,6 @@ export const PayerProvider = ({ children }: { children: ReactNode }) => {
       return null;
     }
   }, [payer.publicKey]);
-
-  //TODO: UNCOMMENT AFTER TESTING
-  useEffect(() => {
-    fetchSolBalance(payer.publicKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const value = useMemo(
     () => ({

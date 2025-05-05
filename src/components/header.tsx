@@ -10,7 +10,7 @@ import NextLink from "next/link";
 import Image from "next/image";
 
 import { MenuIcon, CloseIcon } from "./icons";
-import { PayerButton } from "./payer-modal";
+import { WalletModal } from "./wallet-modal";
 
 import { useSidebar } from "@/contexts/sidebar-context";
 
@@ -55,7 +55,7 @@ export const Header = () => {
       </NavbarContent>
 
       <NavbarContent className="basis-1 pl-4" justify="end">
-        <PayerButton />
+        <WalletModal />
       </NavbarContent>
     </HeroUINavbar>
   );

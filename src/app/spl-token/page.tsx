@@ -2,93 +2,148 @@
 
 import { useState } from "react";
 import { Tabs, Tab } from "@heroui/tabs";
+import { Card, CardBody } from "@heroui/card";
+import { Divider } from "@heroui/divider";
+import Link from "next/link";
 
-import { PayerInfo } from "@/components/payer-info";
 import MintSpl from "@/components/minter/mint-spl";
 
 export default function TokenProgramPage() {
   const [selected, setSelected] = useState("without-compression");
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">TOKEN PROGRAM</h1>
-        <p className="text-gray-500 mt-2">
+        <h1 className="text-blue-700 text-3xl font-bold">TOKEN PROGRAM</h1>
+        <p className="text-gray-700 mt-2">
           Standard Solana token program with optional ZK compression
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-1 space-y-6 order-2 md:order-1">
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold">Overview</h2>
-            <p className="text-sm text-gray-600">
-              The TOKEN PROGRAM is the standard way to create fungible tokens on
-              Solana. You can create tokens with or without ZK compression.
-            </p>
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-1 order-2 md:order-1">
+          <Card className="border-none shadow-md bg-gradient-to-b from-white to-gray-50">
+            <CardBody className="space-y-4">
+              <div>
+                <h2 className="text-xl font-semibold text-blue-700">
+                  SPL Token Program
+                </h2>
+                <p className="text-sm text-gray-700">
+                  Common implementation for fungible and non-fungible tokens on
+                  Solana.
+                </p>
+              </div>
 
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">ZK Compression</h3>
-            <p className="text-sm text-gray-600">
-              ZK compression minimizes the data that costs to save on the
-              blockchain. This can significantly reduce the cost of token
-              operations.
-            </p>
-            <ul className="text-sm text-gray-600 space-y-2 list-disc pl-5">
-              <li>Lower storage costs</li>
-              <li>Reduced transaction fees</li>
-              <li>Improved scalability</li>
-              <li>Maintains security guarantees</li>
-            </ul>
-          </div>
+              <Divider />
 
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">When to Use</h3>
-            <p className="text-sm text-gray-600">Choose the right option:</p>
-            <ul className="text-sm text-gray-600 space-y-2 list-disc pl-5">
-              <li>
-                <strong>WITHOUT:</strong> For maximum compatibility with
-                existing tools
-              </li>
-              <li>
-                <strong>WITH:</strong> For cost-efficient token operations at
-                scale
-              </li>
-            </ul>
-          </div>
+              <div>
+                <h3 className="text-lg font-semibold text-blue-700">
+                  Key Features
+                </h3>
+                <ul className="text-sm text-gray-700 space-y-2">
+                  <li className="flex gap-2 items-start">
+                    <span className="text-blue-600 font-bold">•</span>
+                    <div>Fungible & Non-Fungible tokens</div>
+                  </li>
+                  <li className="flex gap-2 items-start">
+                    <span className="text-blue-600 font-bold">•</span>
+                    <div>Mint & Freeze Authority</div>
+                  </li>
+                  <li className="flex gap-2 items-start">
+                    <span className="text-blue-600 font-bold">•</span>
+                    <div>Configurable decimals</div>
+                  </li>
+                </ul>
+              </div>
+
+              <Divider />
+
+              <div>
+                <h3 className="text-lg font-semibold text-blue-700">
+                  ZK Compression
+                </h3>
+                <ul className="text-sm text-gray-700 space-y-2">
+                  <li className="flex gap-2 items-start">
+                    <span className="text-green-600 font-bold">•</span>
+                    <div>Reduced costs & efficient storage</div>
+                  </li>
+                  <li className="flex gap-2 items-start">
+                    <span className="text-green-600 font-bold">•</span>
+                    <div>Create millions of accounts cheaply</div>
+                  </li>
+                </ul>
+              </div>
+            </CardBody>
+          </Card>
         </div>
 
         <div className="md:col-span-2 order-1 md:order-2">
-          <div className="bg-white p-4 md:p-6 rounded-xl border">
-            <h3 className="text-lg font-medium mb-4">Live Demo</h3>
-            <PayerInfo />
+          <Card className="border-none shadow-lg">
+            <CardBody className="p-6">
+              <h3 className="text-xl font-medium mb-4 text-center">
+                Create Your SPL Token
+              </h3>
 
-            <Tabs
-              aria-label="Token compression options"
-              className="mb-6"
-              selectedKey={selected}
-              onSelectionChange={setSelected as any}
-            >
-              <Tab key="without-compression" title="WITHOUT Compression">
-                <div className="mt-4">
-                  <p className="text-sm text-gray-600 mb-4">
-                    Create a standard SPL token without ZK compression.
-                  </p>
+              <Tabs
+                aria-label="Token compression options"
+                className="mt-4"
+                color="primary"
+                selectedKey={selected}
+                variant="underlined"
+                onSelectionChange={setSelected as any}
+              >
+                <Tab
+                  key="without-compression"
+                  title={
+                    <div className="flex items-center gap-2">
+                      <span>Standard SPL Token</span>
+                    </div>
+                  }
+                >
                   <MintSpl compressionEnabled={false} />
-                </div>
-              </Tab>
-              <Tab key="with-compression" title="WITH Compression">
-                <div className="mt-4">
-                  <p className="text-sm text-gray-600 mb-4">
-                    Create a ZK-compressed SPL token with reduced on-chain
-                    costs.
-                  </p>
+                </Tab>
+                <Tab
+                  key="with-compression"
+                  title={
+                    <div className="flex items-center gap-2">
+                      <span>ZK-Compressed SPL Token</span>
+                    </div>
+                  }
+                >
                   <MintSpl compressionEnabled={true} />
-                </div>
-              </Tab>
-            </Tabs>
-          </div>
+                </Tab>
+              </Tabs>
+            </CardBody>
+          </Card>
+
+          <Card className="border-none shadow-md mt-4">
+            <CardBody className="p-4">
+              <h3 className="text-lg font-medium mb-2 text-blue-700">Docs</h3>
+              <Divider className="mb-3" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Link
+                  className="p-2 border border-blue-100 rounded-lg hover:bg-blue-50 transition-colors"
+                  href="https://www.zkcompression.com/developers/typescript-client"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  <h4 className="font-medium">
+                    ZK Compression TypeScript Client
+                  </h4>
+                </Link>
+                <Link
+                  className="p-2 border border-blue-100 rounded-lg hover:bg-blue-50 transition-colors"
+                  href="https://spl.solana.com/token"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  <h4 className="font-medium">
+                    Official SPL Token Documentation
+                  </h4>
+                </Link>
+              </div>
+            </CardBody>
+          </Card>
         </div>
       </div>
     </div>

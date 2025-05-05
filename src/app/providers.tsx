@@ -10,7 +10,7 @@ import { ToastProvider } from "@heroui/react";
 
 import { SidebarProvider } from "@/contexts/sidebar-context";
 import { SolanaWalletProvider } from "@/providers/solana-wallet-provider";
-import { PayerProvider } from "@/contexts/payer-context";
+import { WalletProvider } from "@/contexts/wallet-context";
 
 export interface ProvidersProps {
   children: React.ReactNode;
@@ -30,14 +30,14 @@ export function Providers({ children, themeProps }: ProvidersProps) {
 
   return (
     <SolanaWalletProvider>
-      <PayerProvider>
+      <WalletProvider>
         <HeroUIProvider navigate={router.push}>
           <NextThemesProvider {...themeProps}>
             <ToastProvider />
             <SidebarProvider>{children}</SidebarProvider>
           </NextThemesProvider>
         </HeroUIProvider>
-      </PayerProvider>
+      </WalletProvider>
     </SolanaWalletProvider>
   );
 }

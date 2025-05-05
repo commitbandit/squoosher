@@ -3,61 +3,77 @@
 import Link from "next/link";
 import { Card, CardBody } from "@heroui/card";
 import { Button } from "@heroui/button";
+import Image from "next/image";
 
 export default function Home() {
   return (
-    <div className="space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-4xl font-bold">Squoosher</h1>
-        <p className="text-xl text-gray-500">
-          Create Solana tokens with or without ZK compression
-        </p>
-      </div>
-      {/* <div className="flex items-center justify-center p-6 bg-gray-50 rounded-xl">
-        <div className="relative w-full aspect-video max-w-md">
-          <div className="absolute inset-0 flex items-center justify-center">
-            <svg
-              className="w-full h-full text-secondary-200 opacity-80"
-              viewBox="0 0 200 200"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M41,-51.2C51.2,-40.4,56.2,-25,61.6,-7.6C66.9,9.8,72.8,29.1,66.4,42C60,54.8,41.4,61.3,22.6,66.2C3.9,71.2,-15,74.7,-30.4,69C-45.7,63.2,-57.6,48.3,-64.3,31.2C-71,14.1,-72.5,-5,-66.3,-20.4C-60.1,-35.8,-46.3,-47.5,-31.9,-56.6C-17.5,-65.7,-2.6,-72.2,9.7,-70.8C22,-69.4,30.8,-61.9,41,-51.2Z"
-                fill="currentColor"
-                transform="translate(100 100)"
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-3xl font-bold text-secondary-600">
+    <div className="space-y-12">
+      <Card className="border-none shadow-lg bg-gradient-to-r from-purple-50 to-blue-50">
+        <CardBody className="p-8">
+          <div className="flex flex-col md:flex-row items-center gap-6">
+            <div className="w-full md:w-1/4 flex justify-center">
+              <div className="relative w-32 h-32">
+                <Image
+                  fill
+                  alt="Squoosher"
+                  className="object-contain"
+                  src="/squoosher.webp"
+                />
+              </div>
+            </div>
+            <div className="w-full md:w-3/4">
+              <h1 className="text-3xl font-bold text-gray-800 mb-4">
                 Squoosher
-              </span>
+              </h1>
+              <p className="text-gray-700 mb-4">
+                Squoosher is a tool for creating Solana tokens with
+                Zero-Knowledge compression capabilities. It simplifies the
+                process of deploying both standard SPL tokens and advanced
+                Token-2022 tokens, with or without compression.
+              </p>
+              <p className="text-gray-700">
+                With Squoosher, developers can significantly reduce transaction
+                costs while maintaining the security and functionality of their
+                token programs on the Solana blockchain.
+              </p>
             </div>
           </div>
-        </div>
-      </div> */}
+        </CardBody>
+      </Card>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <Card>
-          <CardBody className="p-6 space-y-4">
-            <div>
-              <h2 className="text-2xl font-semibold">TOKEN PROGRAM</h2>
+        <Card className="border-none shadow-lg hover:shadow-xl transition-all duration-300">
+          <CardBody className="p-6 space-y-4 relative overflow-hidden">
+            <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-blue-50 opacity-50 z-0" />
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-2">
+                <h2 className="text-2xl font-semibold">TOKEN PROGRAM</h2>
+              </div>
               <p className="text-gray-500 mt-1">
                 Standard Solana token program with optional ZK compression
               </p>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 relative z-10">
               <p className="text-sm text-gray-600">
                 The basic Solana token standard with:
               </p>
-              <ul className="text-sm text-gray-600 list-disc pl-5 space-y-1">
-                <li>Custom token supply</li>
-                <li>Configurable decimals</li>
-                <li>Associated Token Accounts</li>
-                <li>WITH or WITHOUT ZK compression options</li>
+              <ul className="text-sm text-gray-600 space-y-2">
+                {[
+                  "Custom token supply",
+                  "Configurable decimals",
+                  "Associated Token Accounts",
+                  "WITH or WITHOUT ZK compression options",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="text-blue-600 font-bold mt-0.5">•</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
               </ul>
             </div>
-            <div className="pt-4 !mt-auto">
+            <div className="pt-4 !mt-auto relative z-10">
               <Link href="/spl-token">
-                <Button color="secondary" variant="flat">
+                <Button className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white">
                   Open TOKEN PROGRAM
                 </Button>
               </Link>
@@ -65,30 +81,40 @@ export default function Home() {
           </CardBody>
         </Card>
 
-        <Card>
-          <CardBody className="p-6 space-y-4">
-            <div>
-              <h2 className="text-2xl font-semibold">TOKEN 2022 PROGRAM</h2>
+        <Card className="border-none shadow-lg hover:shadow-xl transition-all duration-300">
+          <CardBody className="p-6 space-y-4 relative overflow-hidden">
+            <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-indigo-50 opacity-50 z-0" />
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-2">
+                <h2 className="text-2xl font-semibold">TOKEN 2022 PROGRAM</h2>
+              </div>
               <p className="text-gray-500 mt-1">
                 Advanced token standard with extended features and ZK
                 compression options
               </p>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 relative z-10">
               <p className="text-sm text-gray-600">
                 Enhanced token program with additional capabilities:
               </p>
-              <ul className="text-sm text-gray-600 list-disc pl-5 space-y-1">
-                <li>Transfer fees</li>
-                <li>Non-transferable tokens</li>
-                <li>Token extensions</li>
-                <li>Confidential transfers</li>
-                <li>WITH or WITHOUT ZK compression options</li>
+              <ul className="text-sm text-gray-600 space-y-2">
+                {[
+                  "Transfer fees",
+                  "Non-transferable tokens",
+                  "Token extensions",
+                  "Confidential transfers",
+                  "WITH or WITHOUT ZK compression options",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="text-indigo-600 font-bold mt-0.5">•</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
               </ul>
             </div>
-            <div className="pt-4 !mt-auto">
+            <div className="pt-4 !mt-auto relative z-10">
               <Link href="/spl-token-2022">
-                <Button color="secondary" variant="flat">
+                <Button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
                   Open TOKEN 2022 PROGRAM
                 </Button>
               </Link>
@@ -97,34 +123,56 @@ export default function Home() {
         </Card>
       </div>
 
-      <div className="bg-gray-50 p-6 rounded-xl">
-        <h2 className="text-xl font-semibold mb-4">What is ZK Compression?</h2>
-        <p className="text-sm text-gray-600 mb-4">
-          ZK compression is a method that uses zero-knowledge proofs to minimize
-          the data stored on-chain, significantly reducing the cost of token
-          operations while maintaining security guarantees.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <h3 className="text-lg font-medium">WITHOUT Compression</h3>
-            <ul className="text-sm text-gray-600 list-disc pl-5 space-y-1">
-              <li>Regular on-chain storage</li>
-              <li>Higher transaction costs</li>
-              <li>Maximum compatibility with existing wallets and tools</li>
-              <li>Standard token interactions</li>
-            </ul>
+      <Card className="border-none shadow-md bg-gradient-to-b from-white to-gray-50">
+        <CardBody className="p-8">
+          <h2 className="text-xl font-semibold mb-6 text-gray-800">
+            What is ZK Compression?
+          </h2>
+          <p className="text-sm text-gray-700 mb-6">
+            ZK compression is a method that uses zero-knowledge proofs to
+            minimize the data stored on-chain, significantly reducing the cost
+            of token operations while maintaining security guarantees.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-3 p-4 bg-blue-50 rounded-lg">
+              <h3 className="text-lg font-medium text-blue-700">
+                WITHOUT Compression
+              </h3>
+              <ul className="text-sm text-gray-700 space-y-2">
+                {[
+                  "Regular on-chain storage",
+                  "Higher transaction costs",
+                  "Maximum compatibility with existing wallets and tools",
+                  "Standard token interactions",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="text-blue-600 font-bold mt-0.5">•</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="space-y-3 p-4 bg-indigo-50 rounded-lg">
+              <h3 className="text-lg font-medium text-indigo-700">
+                WITH Compression
+              </h3>
+              <ul className="text-sm text-gray-700 space-y-2">
+                {[
+                  "Reduced on-chain data storage",
+                  "Lower transaction fees",
+                  "Improved scalability for token operations",
+                  "Same security guarantees as standard tokens",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="text-indigo-600 font-bold mt-0.5">•</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
-          <div className="space-y-2">
-            <h3 className="text-lg font-medium">WITH Compression</h3>
-            <ul className="text-sm text-gray-600 list-disc pl-5 space-y-1">
-              <li>Reduced on-chain data storage</li>
-              <li>Lower transaction fees</li>
-              <li>Improved scalability for token operations</li>
-              <li>Same security guarantees as standard tokens</li>
-            </ul>
-          </div>
-        </div>
-      </div>
+        </CardBody>
+      </Card>
     </div>
   );
 }

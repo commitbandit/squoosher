@@ -63,13 +63,7 @@ export const useSolanaWallet = () => {
       signOut: handleSignOut,
       sendTransaction: handleSendTransaction,
       getBalance: handleGetBalance,
-      state: wallet.publicKey
-        ? {
-            publicKey: wallet.publicKey,
-            address: wallet.publicKey.toBase58(),
-            shortAddress: `${wallet.publicKey.toBase58().slice(0, 4)}...${wallet.publicKey.toBase58().slice(-4)}`,
-          }
-        : null,
+      publicKey: wallet.publicKey,
     }),
     [
       handleSignIn,

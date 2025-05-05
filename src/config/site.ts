@@ -17,16 +17,16 @@ export const siteConfig = {
     {
       title: "SPL Token",
       href: "/spl-token",
-      shortDescription: "Create and mint SPL tokens",
+      shortDescription: "Create and manage classic SPL tokens",
       longDescription:
-        "Standard Solana Program Library tokens with full control over decimals and supply.",
+        "Standard Solana Program Library tokens with configurable supply, mint authority, and decimals — widely used for fungible tokens on Solana.",
     },
     {
-      title: "Token 2022",
+      title: "SPL Token 2022",
       href: "/spl-token-2022",
-      shortDescription: "Create and mint SPL Token 2022",
+      shortDescription: "Explore advanced token features",
       longDescription:
-        "Advanced token implementation with extended features like transfer fees and more.",
+        "Next-generation SPL Token program with support for features like transfer fees, interest-bearing tokens, confidential transfers, and multisig authorities.",
     },
   ],
 };
