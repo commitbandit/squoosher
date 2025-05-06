@@ -7,6 +7,7 @@ import { Divider } from "@heroui/divider";
 import Link from "next/link";
 
 import MintToken2022 from "@/components/minter/mint-spl-token-2022";
+import CostCalculator from "@/components/CostCalculator";
 
 export default function Token2022ProgramPage() {
   const [selected, setSelected] = useState("without-compression");
@@ -128,7 +129,11 @@ export default function Token2022ProgramPage() {
             </CardBody>
           </Card>
 
-          <Card className="border-none shadow-md mt-4">
+          <div className="mt-6">
+            <CostCalculator />
+          </div>
+
+          <Card className="border-none shadow-md mt-6">
             <CardBody className="p-4">
               <h3 className="text-lg font-medium mb-2 text-indigo-700">Docs</h3>
               <Divider className="mb-3" />

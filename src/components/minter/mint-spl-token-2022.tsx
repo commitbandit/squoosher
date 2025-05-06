@@ -12,10 +12,10 @@ import { Account } from "@solana/spl-token";
 import { CopyIcon, CircleCheckIcon, ForbiddenCircleIcon } from "../icons";
 
 import {
-  compressedMintSplToken,
-  regularMintSplToken,
-} from "@/services/spl-token";
-import { useWallet } from "@/contexts/wallet-context";
+  compressedMintSplToken2022,
+  regularMintSplToken2022,
+} from "@/services/spl-token-2022";
+import { useWalletContext } from "@/contexts/wallet-context";
 
 interface MintData {
   mint: PublicKey;
@@ -31,7 +31,7 @@ interface MintSpl2022Props {
 export default function MintSplToken2022({
   compressionEnabled = false,
 }: MintSpl2022Props) {
-  const { state, fetchBalance, balance } = useWallet();
+  const { state, fetchBalance, balance } = useWalletContext();
   const [isMinting, setIsMinting] = useState(false);
   const [mintData, setMintData] = useState<MintData | null>(null);
   const [additionalMetadataPairs, setAdditionalMetadataPairs] = useState<
@@ -39,13 +39,17 @@ export default function MintSplToken2022({
   >([["", ""]]);
   const [uriInput, setUriInput] = useState<string>("");
   const [imageError, setImageError] = useState<string | null>(null);
+  const [formValues, setFormValues] = useState<{
+    name: string;
+    symbol: string;
+  }>({ name: "", symbol: "" });
 
   const handleMint = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
-      //TODO: now app not working, because need fix compressedMintSplToken regularMintSplToken
-      if (!state?.keypair) return;
       try {
+        if (!state) throw new Error("Wallet not connected");
+        if (!state?.keypair) throw new Error("Worked for wallet with keypair");
         setIsMinting(true);
         const formData = new FormData(e.currentTarget);
         const mintAmount = formData.get("mintAmount") as string;
@@ -53,6 +57,9 @@ export default function MintSplToken2022({
         const name = formData.get("name") as string;
         const symbol = formData.get("symbol") as string;
         const uri = formData.get("uri") as string;
+
+        // Save form values for display
+        setFormValues({ name, symbol });
 
         // Filter out empty pairs and convert to the required format
         const filteredMetadata = additionalMetadataPairs
@@ -65,7 +72,7 @@ export default function MintSplToken2022({
         let mintData: MintData | null = null;
 
         if (compressionEnabled) {
-          mintData = await compressedMintSplToken({
+          mintData = await compressedMintSplToken2022({
             mintAmount: mintAmountNumber,
             decimals: decimalsNumber,
             name,
@@ -74,10 +81,9 @@ export default function MintSplToken2022({
             additionalMetadata: filteredMetadata,
             //TODO: Add payer
             payer: state?.keypair,
-            isToken2022: true,
           });
         } else {
-          mintData = await regularMintSplToken({
+          mintData = await regularMintSplToken2022({
             mintAmount: mintAmountNumber,
             decimals: decimalsNumber,
             name,
@@ -86,7 +92,6 @@ export default function MintSplToken2022({
             additionalMetadata: filteredMetadata,
             //TODO: Add payer
             payer: state?.keypair,
-            isToken2022: false,
           });
         }
 
@@ -115,13 +120,7 @@ export default function MintSplToken2022({
         setIsMinting(false);
       }
     },
-    [
-      additionalMetadataPairs,
-      compressionEnabled,
-      fetchBalance,
-      state?.keypair,
-      state?.publicKey,
-    ],
+    [additionalMetadataPairs, compressionEnabled, fetchBalance, state],
   );
 
   const addMetadataPair = () => {
@@ -163,7 +162,7 @@ export default function MintSplToken2022({
   return (
     <div className="w-full">
       <Form onSubmit={handleMint}>
-        <Card className="w-full">
+        <Card className="border-none shadow-none w-full">
           <CardBody className="flex flex-col gap-4">
             <Input
               isRequired
@@ -347,8 +346,16 @@ export default function MintSplToken2022({
       {mintData && (
         <div className="mt-8 space-y-4">
           <h3 className="text-lg font-medium">Mint Data</h3>
-          <Card>
+          <Card className="border-none shadow-none w-full">
             <CardBody className="grid grid-cols-1 gap-3">
+              <div>
+                <p className="text-sm text-gray-500 font-medium">Token Type</p>
+                <p className="font-medium">
+                  {compressionEnabled
+                    ? "Compressed SPL Token 2022"
+                    : "Regular SPL Token 2022"}
+                </p>
+              </div>
               <div>
                 <p className="text-sm text-gray-500 font-medium">
                   Mint Address
@@ -364,6 +371,16 @@ export default function MintSplToken2022({
                     }}
                   >
                     <CopyIcon size={16} />
+                  </Button>
+                  <Button
+                    as="a"
+                    href={`https://explorer.solana.com/address/${mintData.mint.toBase58()}?cluster=devnet`}
+                    rel="noopener noreferrer"
+                    size="sm"
+                    target="_blank"
+                    variant="light"
+                  >
+                    View
                   </Button>
                 </div>
               </div>
@@ -383,12 +400,58 @@ export default function MintSplToken2022({
                   >
                     <CopyIcon size={16} />
                   </Button>
+                  <Button
+                    as="a"
+                    href={`https://explorer.solana.com/tx/${mintData.mintTxId}?cluster=devnet`}
+                    rel="noopener noreferrer"
+                    size="sm"
+                    target="_blank"
+                    variant="light"
+                  >
+                    View
+                  </Button>
                 </div>
               </div>
+              <div>
+                <p className="text-sm text-gray-500 font-medium">Decimals</p>
+                <p className="font-mono">{mintData.decimals}</p>
+              </div>
+              {mintData.compressedTokenTxId && (
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">
+                    Compression Transaction ID
+                  </p>
+                  <div className="font-mono text-sm flex items-center gap-2">
+                    {mintData.compressedTokenTxId}
+                    <Button
+                      isIconOnly
+                      size="sm"
+                      variant="light"
+                      onPress={() => {
+                        navigator.clipboard.writeText(
+                          mintData.compressedTokenTxId!,
+                        );
+                      }}
+                    >
+                      <CopyIcon size={16} />
+                    </Button>
+                    <Button
+                      as="a"
+                      href={`https://explorer.solana.com/tx/${mintData.compressedTokenTxId}?cluster=devnet`}
+                      rel="noopener noreferrer"
+                      size="sm"
+                      target="_blank"
+                      variant="light"
+                    >
+                      View
+                    </Button>
+                  </div>
+                </div>
+              )}
               {mintData.ata && (
                 <div>
                   <p className="text-sm text-gray-500 font-medium">
-                    Associated Token Address(ATA)
+                    Associated Token Address (ATA)
                   </p>
                   <div className="font-mono text-sm flex items-center gap-2">
                     {mintData.ata?.address.toBase58()}
@@ -406,9 +469,79 @@ export default function MintSplToken2022({
                     >
                       <CopyIcon size={16} />
                     </Button>
+                    <Button
+                      as="a"
+                      href={`https://explorer.solana.com/address/${mintData.ata?.address.toBase58()}?cluster=devnet`}
+                      rel="noopener noreferrer"
+                      size="sm"
+                      target="_blank"
+                      variant="light"
+                    >
+                      View
+                    </Button>
                   </div>
                 </div>
               )}
+              <div>
+                <p className="text-sm text-gray-500 font-medium">
+                  Token Details
+                </p>
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  <div className="bg-gray-50 p-2 rounded">
+                    <p className="text-xs font-medium">Name</p>
+                    <p className="text-sm truncate">{formValues.name}</p>
+                  </div>
+                  <div className="bg-gray-50 p-2 rounded">
+                    <p className="text-xs font-medium">Symbol</p>
+                    <p className="text-sm">{formValues.symbol}</p>
+                  </div>
+                </div>
+              </div>
+              {uriInput && (
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">Token URI</p>
+                  <div className="mt-1 flex items-start gap-2">
+                    <div className="flex-1 break-all text-sm font-mono">
+                      {uriInput}
+                    </div>
+                    {!imageError && (
+                      <div className="flex-shrink-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          alt="Token Preview"
+                          className="size-12 object-contain rounded border"
+                          src={uriInput}
+                          onError={handleImageError}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              {additionalMetadataPairs.length > 0 &&
+                additionalMetadataPairs[0][0] !== "" && (
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">
+                      Additional Metadata
+                    </p>
+                    <div className="mt-1 space-y-1">
+                      {additionalMetadataPairs
+                        .filter(
+                          ([key, value]) =>
+                            key.trim() !== "" && value.trim() !== "",
+                        )
+                        .map(([key, value], index) => (
+                          <div
+                            key={index}
+                            className="grid grid-cols-2 gap-2 text-sm"
+                          >
+                            <div className="font-medium">{key}</div>
+                            <div>{value}</div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
             </CardBody>
           </Card>
         </div>

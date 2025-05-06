@@ -1,9 +1,8 @@
 "use client";
 
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
-import { PublicKey, Transaction } from "@solana/web3.js";
-import { VersionedTransaction } from "@solana/web3.js";
+import { PublicKey } from "@solana/web3.js";
 import { useCallback, useMemo } from "react";
 
 import {
@@ -13,9 +12,7 @@ import {
 
 export const useSolanaWallet = () => {
   const { setVisible } = useWalletModal();
-  const wallet = useWallet();
-  const { connection } = useConnection();
-  const { disconnect } = useWallet();
+  const { publicKey, disconnect } = useWallet();
 
   const handleSignIn = useCallback(async () => {
     setVisible(true);
@@ -24,12 +21,6 @@ export const useSolanaWallet = () => {
   const handleSignOut = useCallback(async () => {
     await disconnect();
   }, [disconnect]);
-
-  const handleSendTransaction = useCallback(
-    async (tx: Transaction | VersionedTransaction) =>
-      wallet.sendTransaction(tx, connection),
-    [wallet, connection],
-  );
 
   const handleGetBalance = useCallback(
     async ({
@@ -61,16 +52,9 @@ export const useSolanaWallet = () => {
     () => ({
       signIn: handleSignIn,
       signOut: handleSignOut,
-      sendTransaction: handleSendTransaction,
       getBalance: handleGetBalance,
-      publicKey: wallet.publicKey,
+      publicKey,
     }),
-    [
-      handleSignIn,
-      handleSignOut,
-      handleSendTransaction,
-      handleGetBalance,
-      wallet.publicKey,
-    ],
+    [handleSignIn, handleSignOut, handleGetBalance, publicKey],
   );
 };

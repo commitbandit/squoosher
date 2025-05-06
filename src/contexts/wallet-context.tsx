@@ -9,12 +9,7 @@ import {
   useCallback,
   useEffect,
 } from "react";
-import {
-  Keypair,
-  LAMPORTS_PER_SOL,
-  PublicKey,
-  Transaction,
-} from "@solana/web3.js";
+import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import bs58 from "bs58";
 
 import { useSolanaWallet } from "@/hooks/use-solana-wallet";
@@ -49,7 +44,6 @@ export type WalletContextType = {
 
   fetchBalance: (publicKey?: PublicKey) => Promise<Balance>;
   requestAirdrop: () => Promise<string | null>;
-  sendTransaction: (transaction: Transaction) => Promise<string>;
 };
 
 const initialBalance = {
@@ -59,7 +53,7 @@ const initialBalance = {
 
 const WalletContext = createContext<WalletContextType | null>(null);
 
-export const useWallet = () => {
+export const useWalletContext = () => {
   const context = useContext(WalletContext);
 
   if (!context) {
@@ -74,12 +68,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const [balance, setBalance] = useState<Balance | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [state, setState] = useState<ConnectedWallet | null>(null);
-  const {
-    publicKey: walletPublicKey,
-    signIn,
-    signOut,
-    sendTransaction,
-  } = useSolanaWallet();
+  const { publicKey: walletPublicKey, signIn, signOut } = useSolanaWallet();
 
   useEffect(() => {
     if (walletPublicKey && !state) {
@@ -217,16 +206,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [fetchBalance, state?.publicKey]);
 
-  const handleSendTransaction = useCallback(
-    async (transaction: Transaction): Promise<string> => {
-      if (state) {
-        return await sendTransaction(transaction);
-      }
-      throw new Error("No wallet connected");
-    },
-    [sendTransaction, state],
-  );
-
   useEffect(() => {
     if (state?.publicKey) {
       fetchBalance();
@@ -245,7 +224,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       importWalletFromPrivateKey,
       fetchBalance,
       requestAirdrop,
-      sendTransaction: handleSendTransaction,
     }),
     [
       authType,
@@ -258,7 +236,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       importWalletFromPrivateKey,
       fetchBalance,
       requestAirdrop,
-      handleSendTransaction,
     ],
   );
 

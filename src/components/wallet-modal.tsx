@@ -24,7 +24,7 @@ import {
   RefreshIcon,
 } from "./icons";
 
-import { useWallet } from "@/contexts/wallet-context";
+import { useWalletContext } from "@/contexts/wallet-context";
 import { trimNumber } from "@/utils/numbers";
 
 export function WalletModal() {
@@ -39,7 +39,7 @@ export function WalletModal() {
     disconnectWallet,
     fetchBalance,
     requestAirdrop,
-  } = useWallet();
+  } = useWalletContext();
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [privateKeyInput, setPrivateKeyInput] = useState("");

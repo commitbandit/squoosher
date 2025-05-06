@@ -5,6 +5,7 @@ import {
   SystemProgram,
   Transaction,
   sendAndConfirmTransaction,
+  PublicKey,
 } from "@solana/web3.js";
 import {
   createRpc,
@@ -25,7 +26,6 @@ import {
   createInitializeMetadataPointerInstruction,
   TOKEN_2022_PROGRAM_ID,
   createInitializeMintInstruction,
-  TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import {
   createInitializeInstruction,
@@ -42,19 +42,17 @@ type MintData = {
   symbol: string;
   uri: string;
   additionalMetadata: [string, string][];
-  payer: Keypair;
-  isToken2022: boolean;
+  publicKey: PublicKey;
 };
 
-export const compressedMintSplToken = async ({
+export const compressedMintSplToken2022 = async ({
   mintAmount,
   decimals,
   name,
   symbol,
   uri,
   additionalMetadata,
-  payer,
-  isToken2022,
+  publicKey,
 }: MintData) => {
   const mint = Keypair.generate();
 
@@ -78,12 +76,12 @@ export const compressedMintSplToken = async ({
     mintLen + metadataLen,
   );
 
-  const tokenProgramId = isToken2022 ? TOKEN_2022_PROGRAM_ID : TOKEN_PROGRAM_ID;
+  const tokenProgramId = TOKEN_2022_PROGRAM_ID;
 
   const [createMintAccountIx, initializeMintIx, createTokenPoolIx] =
     await CompressedTokenProgram.createMint({
-      feePayer: payer.publicKey,
-      authority: payer.publicKey,
+      feePayer: publicKey,
+      authority: publicKey,
       mint: mint.publicKey,
       decimals,
       freezeAuthority: null,
@@ -96,7 +94,7 @@ export const compressedMintSplToken = async ({
     createMintAccountIx,
     createInitializeMetadataPointerInstruction(
       mint.publicKey,
-      payer.publicKey,
+      publicKey,
       mint.publicKey,
       tokenProgramId,
     ),
@@ -108,21 +106,21 @@ export const compressedMintSplToken = async ({
       name: metadata.name,
       symbol: metadata.symbol,
       uri: metadata.uri,
-      mintAuthority: payer.publicKey,
-      updateAuthority: payer.publicKey,
+      mintAuthority: publicKey,
+      updateAuthority: publicKey,
     }),
     createTokenPoolIx,
   ];
 
   const messageV0 = new TransactionMessage({
-    payerKey: payer.publicKey,
+    payerKey: publicKey,
     recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
     instructions,
   }).compileToV0Message();
 
   const mintTransaction = new VersionedTransaction(messageV0);
 
-  mintTransaction.sign([payer, mint]);
+  mintTransaction.sign([publicKey, mint]);
 
   const txId = await sendAndConfirmTx(connection, mintTransaction);
 
@@ -180,7 +178,7 @@ export const compressedMintSplToken = async ({
   };
 };
 
-export const regularMintSplToken = async ({
+export const regularMintSplToken2022 = async ({
   mintAmount,
   decimals,
   name,
@@ -188,7 +186,6 @@ export const regularMintSplToken = async ({
   uri,
   additionalMetadata,
   payer,
-  isToken2022,
 }: MintData) => {
   const mint = Keypair.generate();
 
@@ -210,7 +207,7 @@ export const regularMintSplToken = async ({
     mintLen + metadataLen,
   );
 
-  const tokenProgramId = isToken2022 ? TOKEN_2022_PROGRAM_ID : TOKEN_PROGRAM_ID;
+  const tokenProgramId = TOKEN_2022_PROGRAM_ID;
 
   const mintTransaction = new Transaction().add(
     SystemProgram.createAccount({

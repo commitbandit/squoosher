@@ -7,6 +7,7 @@ import { Divider } from "@heroui/divider";
 import Link from "next/link";
 
 import MintSpl from "@/components/minter/mint-spl";
+import CostCalculator from "@/components/CostCalculator";
 
 export default function TokenProgramPage() {
   const [selected, setSelected] = useState("without-compression");
@@ -116,7 +117,11 @@ export default function TokenProgramPage() {
             </CardBody>
           </Card>
 
-          <Card className="border-none shadow-md mt-4">
+          <div className="mt-6">
+            <CostCalculator />
+          </div>
+
+          <Card className="border-none shadow-md mt-6">
             <CardBody className="p-4">
               <h3 className="text-lg font-medium mb-2 text-blue-700">Docs</h3>
               <Divider className="mb-3" />

@@ -5,129 +5,104 @@ import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
 import { PublicKey } from "@solana/web3.js";
 import { useCallback, useState } from "react";
-import { createRpc } from "@lightprotocol/stateless.js";
 import { Card, CardBody, CardFooter } from "@heroui/card";
-import { createMint, transfer } from "@lightprotocol/compressed-token";
 import { addToast } from "@heroui/toast";
-import {
-  mintTo as mintToSpl,
-  getOrCreateAssociatedTokenAccount,
-  Account,
-  createMint as createMintRegular,
-} from "@solana/spl-token";
+import { Account } from "@solana/spl-token";
+import { useWallet } from "@solana/wallet-adapter-react";
 
 import { CopyIcon, CircleCheckIcon, ForbiddenCircleIcon } from "../icons";
 
-import { useWallet } from "@/contexts/wallet-context";
-import { DEVNET_RPC_URL } from "@/config";
+import { useWalletContext } from "@/contexts/wallet-context";
+import {
+  compressedMintSplToken,
+  regularMintSplToken,
+} from "@/services/spl-token";
+import {
+  webCompressedMintSplToken,
+  webRegularMintSplToken,
+} from "@/services/spl-token/web-confirm";
 
 interface MintSplProps {
   compressionEnabled?: boolean;
 }
 
-export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
-  const { state, fetchBalance, balance } = useWallet();
-  const [isMinting, setIsMinting] = useState(false);
-  const [mintData, setMintData] = useState<{
-    mint: PublicKey;
-    ata?: Account;
-    transactionSignature: string;
-    decimals: number;
-  } | null>(null);
+interface MintData {
+  mint: PublicKey;
+  transactionSignature: string;
+  decimals: number;
+  ata?: Account;
+  mintToTxId?: string;
+  transferTxId?: string;
+}
 
-  //TODO: add metadata
+export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
+  const { state, fetchBalance, balance } = useWalletContext();
+
+  const { sendTransaction, signTransaction } = useWallet();
+
+  const [isMinting, setIsMinting] = useState(false);
+  const [mintData, setMintData] = useState<MintData | null>(null);
+
   const handleMint = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
-      //TODO: now app not working, because need fix compressedMintSplToken regularMintSplToken
-      if (!state?.keypair) return;
-      const formData = new FormData(e.currentTarget);
-      const compressAmount = formData.get("compressAmount") as string;
-      const decimals = formData.get("decimals") as string;
-
-      setIsMinting(true);
-
       try {
-        const connection = createRpc(
-          DEVNET_RPC_URL,
-          DEVNET_RPC_URL,
-          DEVNET_RPC_URL,
-        );
+        if (!state) throw new Error("Wallet not connected");
+        const formData = new FormData(e.currentTarget);
+        const compressAmount = formData.get("compressAmount") as string;
+        const decimals = formData.get("decimals") as string;
+
+        setIsMinting(true);
+
         const compressAmountNumber = parseInt(compressAmount);
         const decimalsNumber = parseInt(decimals);
 
-        let mint: PublicKey;
-        let transactionSignature: string;
-        let ata: Account | undefined;
+        let result;
 
         if (compressionEnabled) {
-          // Create a compressed token mint
-          const result = await createMint(
-            connection,
-            state.keypair,
-            state.publicKey,
-            decimalsNumber, // Number of decimals
-          );
+          if (!state.keypair) {
+            if (!signTransaction) {
+              throw new Error("Sign transaction not supported");
+            }
 
-          mint = result.mint;
-          transactionSignature = result.transactionSignature;
-
-          console.log(
-            `Create compressed mint success! txId: ${transactionSignature}`,
-          );
-
-          // Mint compressed tokens to the payer's account
-          const mintToTxId = await transfer(
-            connection,
-            state.keypair,
-            mint,
-            compressAmountNumber * 10 ** decimalsNumber,
-            state.keypair,
-            state.publicKey,
-          );
-
-          transactionSignature = mintToTxId;
+            result = await webCompressedMintSplToken({
+              publicKey: state.publicKey,
+              compressAmount: compressAmountNumber,
+              decimals: decimalsNumber,
+              signTransaction,
+              sendTransaction,
+            });
+          } else {
+            result = await compressedMintSplToken({
+              payer: state.keypair,
+              compressAmount: compressAmountNumber,
+              decimals: decimalsNumber,
+            });
+          }
         } else {
-          // Create a regular token mint
-          mint = await createMintRegular(
-            connection,
-            state.keypair,
-            state.publicKey,
-            state.publicKey,
-            decimalsNumber,
-          );
-
-          console.log(`Create regular mint success! mint: ${mint.toBase58()}`);
-
-          // Create Associated Token Account
-          ata = await getOrCreateAssociatedTokenAccount(
-            connection,
-            state.keypair,
-            mint,
-            state.publicKey,
-          );
-
-          console.log(`ATA: ${ata.address}`);
-
-          // Mint tokens to the payer's account
-          transactionSignature = await mintToSpl(
-            connection,
-            state.keypair,
-            mint,
-            ata.address,
-            state.keypair,
-            compressAmountNumber * 10 ** decimalsNumber,
-          );
+          if (!state.keypair) {
+            if (!signTransaction) {
+              throw new Error("Sign transaction not supported");
+            }
+            result = await webRegularMintSplToken({
+              publicKey: state.publicKey,
+              compressAmount: compressAmountNumber,
+              decimals: decimalsNumber,
+              signTransaction,
+              sendTransaction,
+            });
+          } else {
+            result = await regularMintSplToken({
+              payer: state.keypair,
+              compressAmount: compressAmountNumber,
+              decimals: decimalsNumber,
+            });
+          }
         }
 
         await fetchBalance(state.publicKey);
 
-        setMintData({
-          mint,
-          ata,
-          transactionSignature,
-          decimals: decimalsNumber,
-        });
+        setMintData(result);
 
         console.log(
           `Minted ${compressAmountNumber} tokens using ${compressionEnabled ? "compressed" : "regular"} approach`,
@@ -158,7 +133,7 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
   return (
     <div className="w-full">
       <Form onSubmit={handleMint}>
-        <Card className="w-full">
+        <Card className="border-none shadow-none w-full">
           <CardBody className="flex flex-col gap-4">
             <Input
               isRequired
@@ -228,8 +203,16 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
       {mintData && (
         <div className="mt-8 space-y-4">
           <h3 className="text-lg font-medium">Mint Data</h3>
-          <Card>
+          <Card className="border-none shadow-none w-full">
             <CardBody className="grid grid-cols-1 gap-3">
+              <div>
+                <p className="text-sm text-gray-500 font-medium">Token Type</p>
+                <p className="font-medium">
+                  {compressionEnabled
+                    ? "Compressed SPL Token"
+                    : "Regular SPL Token"}
+                </p>
+              </div>
               <div>
                 <p className="text-sm text-gray-500 font-medium">
                   Mint Address
@@ -266,12 +249,86 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
                   >
                     <CopyIcon size={16} />
                   </Button>
+                  <Button
+                    as="a"
+                    href={`https://explorer.solana.com/tx/${mintData.transactionSignature}?cluster=devnet`}
+                    rel="noopener noreferrer"
+                    size="sm"
+                    target="_blank"
+                    variant="light"
+                  >
+                    View
+                  </Button>
                 </div>
               </div>
+              <div>
+                <p className="text-sm text-gray-500 font-medium">Decimals</p>
+                <p className="font-mono">{mintData.decimals}</p>
+              </div>
+              {mintData.mintToTxId && (
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">
+                    Mint-To Transaction ID
+                  </p>
+                  <div className="font-mono text-sm flex items-center gap-2">
+                    {mintData.mintToTxId}
+                    <Button
+                      isIconOnly
+                      size="sm"
+                      variant="light"
+                      onPress={() => {
+                        navigator.clipboard.writeText(mintData.mintToTxId!);
+                      }}
+                    >
+                      <CopyIcon size={16} />
+                    </Button>
+                    <Button
+                      as="a"
+                      href={`https://explorer.solana.com/tx/${mintData.mintToTxId}?cluster=devnet`}
+                      rel="noopener noreferrer"
+                      size="sm"
+                      target="_blank"
+                      variant="light"
+                    >
+                      View
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {mintData.transferTxId && (
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">
+                    Transfer Transaction ID
+                  </p>
+                  <div className="font-mono text-sm flex items-center gap-2">
+                    {mintData.transferTxId}
+                    <Button
+                      isIconOnly
+                      size="sm"
+                      variant="light"
+                      onPress={() => {
+                        navigator.clipboard.writeText(mintData.transferTxId!);
+                      }}
+                    >
+                      <CopyIcon size={16} />
+                    </Button>
+                    <Button
+                      as="a"
+                      href={`https://explorer.solana.com/tx/${mintData.transferTxId}?cluster=devnet`}
+                      rel="noopener noreferrer"
+                      size="sm"
+                      target="_blank"
+                      variant="light"
+                    >
+                      View
+                    </Button>
+                  </div>
+                </div>
+              )}
               {mintData.ata && (
                 <div>
                   <p className="text-sm text-gray-500 font-medium">
-                    Associated Token Address(ATA)
+                    Associated Token Address (ATA)
                   </p>
                   <div className="font-mono text-sm flex items-center gap-2">
                     {mintData.ata?.address.toBase58()}
@@ -288,6 +345,16 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
                       }}
                     >
                       <CopyIcon size={16} />
+                    </Button>
+                    <Button
+                      as="a"
+                      href={`https://explorer.solana.com/address/${mintData.ata?.address.toBase58()}?cluster=devnet`}
+                      rel="noopener noreferrer"
+                      size="sm"
+                      target="_blank"
+                      variant="light"
+                    >
+                      View
                     </Button>
                   </div>
                 </div>
