@@ -3,6 +3,7 @@ import { CompressedTokenProgram } from "@lightprotocol/compressed-token";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountInstruction,
+  createInitializeMintInstruction,
   createMintToInstruction,
   getAssociatedTokenAddress,
   MINT_SIZE,
@@ -11,11 +12,9 @@ import {
 import {
   Connection,
   Keypair,
-  createInitializeMintInstruction,
   PublicKey,
   SystemProgram,
   Transaction,
-  TransactionMessage,
   TransactionSignature,
   VersionedTransaction,
 } from "@solana/web3.js";
@@ -41,7 +40,6 @@ export const webCompressedMintSplToken = async ({
   publicKey,
   compressAmount,
   decimals,
-  signTransaction,
   sendTransaction,
 }: MintData) => {
   const mint = Keypair.generate();
@@ -52,28 +50,36 @@ export const webCompressedMintSplToken = async ({
   const mintLamports =
     await connection.getMinimumBalanceForRentExemption(MINT_SIZE);
 
-  const instructions = await CompressedTokenProgram.createMint({
-    feePayer: publicKey,
-    authority: publicKey,
-    mint: mint.publicKey,
-    decimals,
-    freezeAuthority: null,
-    rentExemptBalance: mintLamports,
-  });
+  // const instructions = await CompressedTokenProgram.createMint({
+  //   feePayer: publicKey,
+  //   authority: publicKey,
+  //   mint: mint.publicKey,
+  //   decimals,
+  //   freezeAuthority: null,
+  //   rentExemptBalance: mintLamports,
+  // });
 
-  const messageV0 = new TransactionMessage({
-    payerKey: publicKey,
-    recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-    instructions,
-  }).compileToV0Message();
+  // const messageV0 = new TransactionMessage({
+  //   payerKey: publicKey,
+  //   recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+  //   instructions,
+  // }).compileToV0Message();
 
-  const mintTransaction = new VersionedTransaction(messageV0);
+  // const mintTransaction = new VersionedTransaction(messageV0);
 
-  const signedTransaction = await signTransaction(mintTransaction);
+  // const signedTransaction = await signTransaction(mintTransaction);
 
-  console.log(`Signed transaction: ${signedTransaction}`);
+  // console.log(`Signed transaction: ${signedTransaction}`);
 
   const transaction = new Transaction().add(
+    ...(await CompressedTokenProgram.createMint({
+      feePayer: publicKey,
+      authority: publicKey,
+      mint: mint.publicKey,
+      decimals,
+      freezeAuthority: null,
+      rentExemptBalance: mintLamports,
+    })),
     await CompressedTokenProgram.mintTo({
       feePayer: publicKey,
       mint: mint.publicKey,
