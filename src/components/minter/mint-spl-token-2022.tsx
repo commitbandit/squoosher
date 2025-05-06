@@ -50,7 +50,6 @@ export default function MintSplToken2022({
       e.preventDefault();
       try {
         if (!state) throw new Error("Wallet not connected");
-        if (!state?.keypair) throw new Error("Worked for wallet with keypair");
         setIsMinting(true);
         const formData = new FormData(e.currentTarget);
         const mintAmount = formData.get("mintAmount") as string;
@@ -67,10 +66,12 @@ export default function MintSplToken2022({
           .filter(([key, value]) => key.trim() !== "" && value.trim() !== "")
           .map(([key, value]) => [key, value] as [string, string]);
 
-        const mintAmountNumber = parseInt(mintAmount);
+        const mintAmountNumber = parseFloat(mintAmount);
         const decimalsNumber = parseInt(decimals);
 
         let result: MintViewData | null = null;
+
+        console.log("state", state);
 
         if (compressionEnabled) {
           if (!state.keypair) {
@@ -97,7 +98,7 @@ export default function MintSplToken2022({
               symbol,
               uri,
               additionalMetadata: filteredMetadata,
-              payer: state?.keypair,
+              payer: state.keypair,
             });
           }
         } else {
@@ -124,7 +125,7 @@ export default function MintSplToken2022({
               symbol,
               uri,
               additionalMetadata: filteredMetadata,
-              payer: state?.keypair,
+              payer: state.keypair,
             });
           }
         }
@@ -246,7 +247,7 @@ export default function MintSplToken2022({
                   />
                 )
               }
-              label="Token URI (Image URL)"
+              label="Token URI"
               labelPlacement="outside"
               name="uri"
               placeholder="https://example.com/image.png"
@@ -413,7 +414,7 @@ export default function MintSplToken2022({
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       alt="Token Preview"
-                      className="size-12 object-contain rounded border"
+                      className="size-12 object-contain rounded"
                       src={uriInput}
                       onError={handleImageError}
                     />

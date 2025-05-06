@@ -12,12 +12,12 @@ export default function Home() {
         <CardBody className="p-8">
           <div className="flex flex-col md:flex-row items-center gap-6">
             <div className="w-full md:w-1/4 flex justify-center">
-              <div className="relative w-32 h-32">
+              <div className="relative w-full h-52">
                 <Image
                   fill
                   alt="Squoosher"
                   className="object-contain"
-                  src="/squoosher.webp"
+                  src="/standing-squoosher.webp"
                 />
               </div>
             </div>

@@ -46,7 +46,7 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
 
         setIsMinting(true);
 
-        const mintAmountNumber = parseInt(mintAmount);
+        const mintAmountNumber = parseFloat(mintAmount);
         const decimalsNumber = parseInt(decimals);
 
         let result;
@@ -122,6 +122,10 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
     [compressionEnabled, fetchBalance, sendTransaction, signTransaction, state],
   );
 
+  const clearForm = () => {
+    setMintData(null);
+  };
+
   return (
     <div className="w-full">
       <Form onSubmit={handleMint}>
@@ -129,7 +133,7 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
           <CardBody className="flex flex-col gap-4">
             <Input
               isRequired
-              label="Amount to Mint (SOL)"
+              label="Amount to Mint"
               labelPlacement="outside"
               min="0.001"
               name="mintAmount"
@@ -174,6 +178,7 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
               isDisabled={isMinting}
               type="reset"
               variant="flat"
+              onPress={clearForm}
             >
               Reset
             </Button>

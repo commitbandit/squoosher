@@ -1,6 +1,5 @@
 import { Button } from "@heroui/button";
 import { Divider } from "@heroui/divider";
-import { Accordion, AccordionItem } from "@heroui/accordion";
 
 import { CopyIcon, LinkIcon } from "../icons";
 
@@ -86,12 +85,9 @@ export const MintViewComponent = ({
             </div>
           </div>
         )}
-        <Accordion>
-          <AccordionItem
-            key="transactions"
-            aria-label="transactions"
-            title="Transactions"
-          >
+        {Object.keys(mintData.transactions).length > 0 && (
+          <div>
+            <p className="text-sm text-gray-500 font-medium">Transactions</p>
             {Object.entries(mintData.transactions).map(([key, value]) => (
               <div key={key}>
                 <p className="text-sm text-gray-500 font-medium">
@@ -125,8 +121,8 @@ export const MintViewComponent = ({
                 </div>
               </div>
             ))}
-          </AccordionItem>
-        </Accordion>
+          </div>
+        )}
       </div>
     </>
   );

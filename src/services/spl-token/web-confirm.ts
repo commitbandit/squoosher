@@ -45,13 +45,14 @@ export const webCompressedMintSplToken = async ({
 }: MintData): Promise<MintViewData> => {
   const mint = Keypair.generate();
 
+  console.log("mint", mint.publicKey.toBase58());
+
   const connection = createRpc(DEVNET_RPC_URL, DEVNET_RPC_URL, DEVNET_RPC_URL);
-  // Create a compressed token mint
 
   const mintLamports =
     await connection.getMinimumBalanceForRentExemption(MINT_SIZE);
 
-  const transaction = new Transaction().add(
+  const createMintTransaction = new Transaction({ feePayer: payer }).add(
     ...(await CompressedTokenProgram.createMint({
       feePayer: payer,
       authority: payer,
@@ -60,6 +61,16 @@ export const webCompressedMintSplToken = async ({
       freezeAuthority: null,
       rentExemptBalance: mintLamports,
     })),
+  );
+
+  const createMintTransactionSignature = await sendTransaction(
+    createMintTransaction,
+    connection,
+  );
+
+  console.log("create mint success! txId: ", createMintTransaction);
+
+  const mintToTransaction = new Transaction({ feePayer: payer }).add(
     await CompressedTokenProgram.mintTo({
       feePayer: payer,
       mint: mint.publicKey,
@@ -69,21 +80,23 @@ export const webCompressedMintSplToken = async ({
     }),
   );
 
-  const createMintTransactionSignature = await sendTransaction(
-    transaction,
+  const sim = await connection.simulateTransaction(mintToTransaction);
+
+  console.log("simulation", sim);
+
+  const mintToTransactionSignature = await sendTransaction(
+    mintToTransaction,
     connection,
-    {
-      signers: [mint],
-    },
   );
 
-  console.log(
-    `Create compressed mint success! txId: ${createMintTransactionSignature}`,
-  );
+  console.log(`Mint to success! txId: ${mintToTransactionSignature}`);
 
   return {
     mint: mint.publicKey,
-    transactions: { createMintTransactionSignature },
+    transactions: {
+      createMintTransactionSignature,
+      mintToTransactionSignature,
+    },
     decimals,
   };
 };
@@ -97,12 +110,13 @@ export const webRegularMintSplToken = async ({
   const connection = createRpc(DEVNET_RPC_URL, DEVNET_RPC_URL, DEVNET_RPC_URL);
 
   const mint = Keypair.generate();
+
+  console.log("mint", mint.publicKey.toBase58());
+
   const mintLamports =
     await connection.getMinimumBalanceForRentExemption(MINT_SIZE);
 
-  const transaction = new Transaction();
-
-  transaction.add(
+  const mintTransaction = new Transaction({ feePayer: payer }).add(
     SystemProgram.createAccount({
       fromPubkey: payer,
       newAccountPubkey: mint.publicKey,
@@ -112,7 +126,7 @@ export const webRegularMintSplToken = async ({
     }),
     createInitializeMintInstruction(
       mint.publicKey,
-      0,
+      decimals,
       payer,
       payer,
       TOKEN_PROGRAM_ID,
@@ -123,7 +137,7 @@ export const webRegularMintSplToken = async ({
     `Create regular mint success! mint: ${mint.publicKey.toBase58()}`,
   );
 
-  const mintSignature = await sendTransaction(transaction, connection, {
+  const mintSignature = await sendTransaction(mintTransaction, connection, {
     signers: [mint],
   });
 
@@ -135,7 +149,7 @@ export const webRegularMintSplToken = async ({
     ASSOCIATED_TOKEN_PROGRAM_ID,
   );
 
-  transaction.add(
+  const associatedTokenTransaction = new Transaction({ feePayer: payer }).add(
     createAssociatedTokenAccountInstruction(
       payer,
       associatedToken,
@@ -153,7 +167,7 @@ export const webRegularMintSplToken = async ({
   );
 
   const associatedTokenSignature = await sendTransaction(
-    transaction,
+    associatedTokenTransaction,
     connection,
   );
 

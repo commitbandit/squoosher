@@ -18,7 +18,6 @@ import {
   TOKEN_2022_PROGRAM_ID,
   createInitializeMintInstruction,
   ASSOCIATED_TOKEN_PROGRAM_ID,
-  TOKEN_PROGRAM_ID,
   getAssociatedTokenAddress,
   createMintToInstruction,
   createAssociatedTokenAccountInstruction,
@@ -63,6 +62,8 @@ export const webCompressedMintSplToken2022 = async ({
 }: MintData): Promise<MintViewData> => {
   const mint = Keypair.generate();
 
+  console.log("compressed mint", mint.publicKey.toBase58());
+
   const metadata: TokenMetadata = {
     mint: mint.publicKey,
     name,
@@ -73,54 +74,72 @@ export const webCompressedMintSplToken2022 = async ({
 
   const connection = createRpc(DEVNET_RPC_URL, DEVNET_RPC_URL, DEVNET_RPC_URL);
 
-  const mintLen = getMintLen([ExtensionType.MetadataPointer]);
-
-  const metadataLen = TYPE_SIZE + LENGTH_SIZE + pack(metadata).length;
   const activeStateTrees = await connection.getCachedActiveStateTreeInfo();
   const { tree } = pickRandomTreeAndQueue(activeStateTrees);
 
+  const metadataExtension = TYPE_SIZE + LENGTH_SIZE;
+
+  const metadataLen = pack(metadata).length;
+
+  const mintLen = getMintLen([ExtensionType.MetadataPointer]);
+
   const mintLamports = await connection.getMinimumBalanceForRentExemption(
-    mintLen + metadataLen,
+    mintLen + metadataExtension + metadataLen,
   );
 
   const tokenProgramId = TOKEN_2022_PROGRAM_ID;
 
-  const [createMintAccountIx, initializeMintIx, createTokenPoolIx] =
-    await CompressedTokenProgram.createMint({
-      feePayer: payer,
-      authority: payer,
-      mint: mint.publicKey,
-      decimals,
-      freezeAuthority: null,
-      rentExemptBalance: mintLamports,
-      tokenProgramId,
-      mintSize: mintLen,
-    });
+  //1 MINT
+  const [
+    createAccountInstruction,
+    initializeMintInstruction,
+    createTokenPoolIx,
+  ] = await CompressedTokenProgram.createMint({
+    feePayer: payer,
+    authority: payer,
+    mint: mint.publicKey,
+    decimals,
+    freezeAuthority: null,
+    rentExemptBalance: mintLamports,
+    tokenProgramId,
+    mintSize: mintLen,
+  });
 
-  const instructions = [
-    createMintAccountIx,
+  const initializeMetadataPointerInstruction =
     createInitializeMetadataPointerInstruction(
       mint.publicKey,
       payer,
       mint.publicKey,
       tokenProgramId,
-    ),
-    initializeMintIx,
-    createInitializeInstruction({
-      programId: tokenProgramId,
-      mint: mint.publicKey,
-      metadata: mint.publicKey,
-      name: metadata.name,
-      symbol: metadata.symbol,
-      uri: metadata.uri,
-      mintAuthority: payer,
-      updateAuthority: payer,
-    }),
+    );
+
+  const initializeMetadataInstruction = createInitializeInstruction({
+    metadata: mint.publicKey,
+    updateAuthority: payer,
+    mint: mint.publicKey,
+    mintAuthority: payer,
+    name: metadata.name,
+    symbol: metadata.symbol,
+    uri: metadata.uri,
+    programId: tokenProgramId,
+  });
+
+  const createMintTransaction = new Transaction({ feePayer: payer }).add(
+    createAccountInstruction,
+    initializeMetadataPointerInstruction,
+    initializeMintInstruction,
+    initializeMetadataInstruction,
     createTokenPoolIx,
-  ];
+  );
+
+  const createMintSimulation = await connection.simulateTransaction(
+    createMintTransaction,
+  );
+
+  console.log("simulation", createMintSimulation);
 
   const createMintTransactionSignature = await sendTransaction(
-    new Transaction().add(...instructions),
+    createMintTransaction,
     connection,
     {
       signers: [mint],
@@ -131,52 +150,81 @@ export const webCompressedMintSplToken2022 = async ({
     `createMintTransactionSignature: ${createMintTransactionSignature}`,
   );
 
+  //2 ASSOCIATE TOKEN and MINT TO
   const associatedToken = await getAssociatedTokenAddress(
     mint.publicKey,
     payer,
     false,
-    TOKEN_PROGRAM_ID,
+    tokenProgramId,
     ASSOCIATED_TOKEN_PROGRAM_ID,
   );
 
-  //TODO: or separate mint and compress
-  const transaction = new Transaction().add(
+  const initializeAssociatedTokenAccountInstruction =
     createAssociatedTokenAccountInstruction(
       payer,
       associatedToken,
       payer,
       mint.publicKey,
-      TOKEN_PROGRAM_ID,
-      ASSOCIATED_TOKEN_PROGRAM_ID,
-    ),
-    createMintToInstruction(
-      mint.publicKey,
-      associatedToken,
-      payer,
-      mintAmount * 10 ** decimals,
-    ),
-    await CompressedTokenProgram.compress({
-      payer,
-      owner: payer,
-      source: associatedToken,
-      toAddress: payer,
-      mint: mint.publicKey,
-      amount: mintAmount * 10 ** decimals,
       tokenProgramId,
-      outputStateTree: tree,
-    }),
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+
+  const initializeMintToInstruction = createMintToInstruction(
+    mint.publicKey,
+    associatedToken,
+    payer,
+    mintAmount * 10 ** decimals,
+    [],
+    tokenProgramId,
   );
 
-  const compressedTokenTransactionSignature = await sendTransaction(
-    transaction,
+  const mintToTransaction = new Transaction({ feePayer: payer }).add(
+    initializeAssociatedTokenAccountInstruction,
+    initializeMintToInstruction,
+  );
+
+  const mintToSimulation =
+    await connection.simulateTransaction(mintToTransaction);
+
+  console.log("mintToSimulation", mintToSimulation);
+
+  const mintToTransactionSignature = await sendTransaction(
+    mintToTransaction,
     connection,
   );
+
+  //NOTE: Compress is not working
+  //3 COMPRESS
+  // const initializeCompressedToken = await CompressedTokenProgram.compress({
+  //   payer,
+  //   owner: payer,
+  //   source: associatedToken,
+  //   toAddress: payer,
+  //   mint: mint.publicKey,
+  //   amount: mintAmount * 10 ** decimals,
+  //   tokenProgramId,
+  //   outputStateTree: tree,
+  // });
+
+  // const compressTransaction = new Transaction({ feePayer: payer }).add(
+  //   initializeCompressedToken,
+  // );
+
+  // const compressSimulation =
+  //   await connection.simulateTransaction(compressTransaction);
+
+  // console.log("compressSimulation", compressSimulation);
+
+  // const compressTransactionSignature = await sendTransaction(
+  //   compressTransaction,
+  //   connection,
+  // );
 
   return {
     mint: mint.publicKey,
     transactions: {
       createMintTransactionSignature,
-      compressedTokenTransactionSignature,
+      mintToTransactionSignature,
     },
     decimals,
     ata: associatedToken,
@@ -195,7 +243,10 @@ export const webRegularMintSplToken2022 = async ({
 }: MintData): Promise<MintViewData> => {
   const mint = Keypair.generate();
 
+  console.log("regular mint", mint.publicKey.toBase58());
+
   const metadata: TokenMetadata = {
+    updateAuthority: payer,
     mint: mint.publicKey,
     name,
     symbol,
@@ -205,51 +256,69 @@ export const webRegularMintSplToken2022 = async ({
 
   const connection = createRpc(DEVNET_RPC_URL, DEVNET_RPC_URL, DEVNET_RPC_URL);
 
+  const metadataExtension = TYPE_SIZE + LENGTH_SIZE;
+
+  const metadataLen = pack(metadata).length;
+
   const mintLen = getMintLen([ExtensionType.MetadataPointer]);
 
-  const metadataLen = TYPE_SIZE + LENGTH_SIZE + pack(metadata).length;
-
   const mintLamports = await connection.getMinimumBalanceForRentExemption(
-    mintLen + metadataLen,
+    mintLen + metadataExtension + metadataLen,
   );
 
-  const tokenProgramId = TOKEN_2022_PROGRAM_ID;
+  const programId = TOKEN_2022_PROGRAM_ID;
 
-  const mintTransaction = new Transaction().add(
-    SystemProgram.createAccount({
-      fromPubkey: payer,
-      newAccountPubkey: mint.publicKey,
-      space: mintLen,
-      lamports: mintLamports,
-      programId: tokenProgramId,
-    }),
+  const createAccountInstruction = SystemProgram.createAccount({
+    fromPubkey: payer,
+    newAccountPubkey: mint.publicKey,
+    space: mintLen,
+    lamports: mintLamports,
+    programId,
+  });
+
+  const initializeMetadataPointerInstruction =
     createInitializeMetadataPointerInstruction(
       mint.publicKey,
       payer,
       mint.publicKey,
-      tokenProgramId,
-    ),
-    createInitializeMintInstruction(
-      mint.publicKey,
-      decimals,
-      payer,
-      null,
-      tokenProgramId,
-    ),
-    createInitializeInstruction({
-      programId: tokenProgramId,
-      mint: mint.publicKey,
-      metadata: mint.publicKey,
-      name: metadata.name,
-      symbol: metadata.symbol,
-      uri: metadata.uri,
-      mintAuthority: payer,
-      updateAuthority: payer,
-    }),
+      programId,
+    );
+
+  const initializeMintInstruction = createInitializeMintInstruction(
+    mint.publicKey,
+    decimals,
+    payer,
+    null,
+    programId,
   );
 
+  const initializeMetadataInstruction = createInitializeInstruction({
+    metadata: mint.publicKey,
+    updateAuthority: payer,
+    mint: mint.publicKey,
+    mintAuthority: payer,
+    name: metadata.name,
+    symbol: metadata.symbol,
+    uri: metadata.uri,
+    programId,
+  });
+
+  const createMintTransaction = new Transaction({ feePayer: payer }).add(
+    createAccountInstruction,
+    initializeMetadataPointerInstruction,
+    // note: the above instructions are required before initializing the mint
+    initializeMintInstruction,
+    initializeMetadataInstruction,
+  );
+
+  const createMintSimulation = await connection.simulateTransaction(
+    createMintTransaction,
+  );
+
+  console.log("createMintSimulation", createMintSimulation);
+
   const createMintTransactionSignature = await sendTransaction(
-    mintTransaction,
+    createMintTransaction,
     connection,
     {
       signers: [mint],
@@ -263,28 +332,41 @@ export const webRegularMintSplToken2022 = async ({
     mint.publicKey,
     payer,
     false,
-    TOKEN_PROGRAM_ID,
+    programId,
     ASSOCIATED_TOKEN_PROGRAM_ID,
   );
 
   console.log(`ATA: ${associatedToken}`);
 
-  const mintToTransaction = new Transaction().add(
+  const initializeAssociatedTokenAccountInstruction =
     createAssociatedTokenAccountInstruction(
       payer,
       associatedToken,
       payer,
       mint.publicKey,
-      TOKEN_PROGRAM_ID,
+      programId,
       ASSOCIATED_TOKEN_PROGRAM_ID,
-    ),
-    createMintToInstruction(
-      mint.publicKey,
-      associatedToken,
-      payer,
-      mintAmount * 10 ** decimals,
-    ),
+    );
+
+  const initializeMintToInstruction = createMintToInstruction(
+    mint.publicKey,
+    associatedToken,
+    payer,
+    mintAmount * 10 ** decimals,
+    [],
+    programId,
   );
+
+  const mintToTransaction = new Transaction({ feePayer: payer }).add(
+    initializeAssociatedTokenAccountInstruction,
+    initializeMintToInstruction,
+  );
+
+  const mintToSimulation =
+    await connection.simulateTransaction(mintToTransaction);
+
+  console.log("mintToTransactionSimulation", mintToSimulation);
+
   const mintToTransactionSignature = await sendTransaction(
     mintToTransaction,
     connection,
