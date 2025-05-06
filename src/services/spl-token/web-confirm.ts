@@ -21,9 +21,10 @@ import {
 import { SendTransactionOptions } from "@solana/wallet-adapter-base";
 
 import { DEVNET_RPC_URL } from "@/config";
+import { MintViewData } from "@/types";
 
 type MintData = {
-  publicKey: PublicKey;
+  payer: PublicKey;
   compressAmount: number;
   decimals: number;
   sendTransaction: (
@@ -37,11 +38,11 @@ type MintData = {
 };
 
 export const webCompressedMintSplToken = async ({
-  publicKey,
+  payer,
   compressAmount,
   decimals,
   sendTransaction,
-}: MintData) => {
+}: MintData): Promise<MintViewData> => {
   const mint = Keypair.generate();
 
   const connection = createRpc(DEVNET_RPC_URL, DEVNET_RPC_URL, DEVNET_RPC_URL);
@@ -50,63 +51,49 @@ export const webCompressedMintSplToken = async ({
   const mintLamports =
     await connection.getMinimumBalanceForRentExemption(MINT_SIZE);
 
-  // const instructions = await CompressedTokenProgram.createMint({
-  //   feePayer: publicKey,
-  //   authority: publicKey,
-  //   mint: mint.publicKey,
-  //   decimals,
-  //   freezeAuthority: null,
-  //   rentExemptBalance: mintLamports,
-  // });
-
-  // const messageV0 = new TransactionMessage({
-  //   payerKey: publicKey,
-  //   recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-  //   instructions,
-  // }).compileToV0Message();
-
-  // const mintTransaction = new VersionedTransaction(messageV0);
-
-  // const signedTransaction = await signTransaction(mintTransaction);
-
-  // console.log(`Signed transaction: ${signedTransaction}`);
-
   const transaction = new Transaction().add(
     ...(await CompressedTokenProgram.createMint({
-      feePayer: publicKey,
-      authority: publicKey,
+      feePayer: payer,
+      authority: payer,
       mint: mint.publicKey,
       decimals,
       freezeAuthority: null,
       rentExemptBalance: mintLamports,
     })),
     await CompressedTokenProgram.mintTo({
-      feePayer: publicKey,
+      feePayer: payer,
       mint: mint.publicKey,
-      authority: publicKey,
-      toPubkey: publicKey,
+      authority: payer,
+      toPubkey: payer,
       amount: compressAmount * 10 ** decimals,
     }),
   );
 
-  //sign and send transaction
-  const transactionSignature = await sendTransaction(transaction, connection);
+  const createMintTransactionSignature = await sendTransaction(
+    transaction,
+    connection,
+    {
+      signers: [mint],
+    },
+  );
 
-  console.log(`Create compressed mint success! txId: ${transactionSignature}`);
+  console.log(
+    `Create compressed mint success! txId: ${createMintTransactionSignature}`,
+  );
 
   return {
-    mint,
-    transactionSignature,
+    mint: mint.publicKey,
+    transactions: { createMintTransactionSignature },
     decimals,
   };
 };
 
 export const webRegularMintSplToken = async ({
-  publicKey,
+  payer,
   compressAmount,
   decimals,
   sendTransaction,
-}: MintData) => {
+}: MintData): Promise<MintViewData> => {
   const connection = createRpc(DEVNET_RPC_URL, DEVNET_RPC_URL, DEVNET_RPC_URL);
 
   const mint = Keypair.generate();
@@ -117,7 +104,7 @@ export const webRegularMintSplToken = async ({
 
   transaction.add(
     SystemProgram.createAccount({
-      fromPubkey: publicKey,
+      fromPubkey: payer,
       newAccountPubkey: mint.publicKey,
       space: MINT_SIZE,
       lamports: mintLamports,
@@ -126,8 +113,8 @@ export const webRegularMintSplToken = async ({
     createInitializeMintInstruction(
       mint.publicKey,
       0,
-      publicKey,
-      publicKey,
+      payer,
+      payer,
       TOKEN_PROGRAM_ID,
     ),
   );
@@ -142,7 +129,7 @@ export const webRegularMintSplToken = async ({
 
   const associatedToken = await getAssociatedTokenAddress(
     mint.publicKey,
-    publicKey,
+    payer,
     false,
     TOKEN_PROGRAM_ID,
     ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -150,9 +137,9 @@ export const webRegularMintSplToken = async ({
 
   transaction.add(
     createAssociatedTokenAccountInstruction(
-      publicKey,
+      payer,
       associatedToken,
-      publicKey,
+      payer,
       mint.publicKey,
       TOKEN_PROGRAM_ID,
       ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -160,7 +147,7 @@ export const webRegularMintSplToken = async ({
     createMintToInstruction(
       mint.publicKey,
       associatedToken,
-      publicKey,
+      payer,
       compressAmount * 10 ** decimals,
     ),
   );
@@ -171,7 +158,7 @@ export const webRegularMintSplToken = async ({
   );
 
   return {
-    mint,
+    mint: mint.publicKey,
     transactions: { mintSignature, associatedTokenSignature },
     decimals,
   };

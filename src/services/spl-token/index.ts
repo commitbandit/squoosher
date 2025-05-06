@@ -1,5 +1,5 @@
 import { createRpc } from "@lightprotocol/stateless.js";
-import { createMint, mintTo, transfer } from "@lightprotocol/compressed-token";
+import { createMint, mintTo } from "@lightprotocol/compressed-token";
 import {
   mintTo as mintToSpl,
   getOrCreateAssociatedTokenAccount,
@@ -8,6 +8,7 @@ import {
 import { Keypair } from "@solana/web3.js";
 
 import { DEVNET_RPC_URL } from "@/config";
+import { MintViewData } from "@/types";
 
 type MintData = {
   payer: Keypair;
@@ -19,17 +20,18 @@ export const compressedMintSplToken = async ({
   payer,
   compressAmount,
   decimals,
-}: MintData) => {
+}: MintData): Promise<MintViewData> => {
   const connection = createRpc(DEVNET_RPC_URL, DEVNET_RPC_URL, DEVNET_RPC_URL);
   // Create a compressed token mint
-  const { mint, transactionSignature } = await createMint(
-    connection,
-    payer,
-    payer.publicKey,
-    decimals, // Number of decimals
-  );
+  const { mint, transactionSignature: createMintTransactionSignature } =
+    await createMint(
+      connection,
+      payer,
+      payer.publicKey,
+      decimals, // Number of decimals
+    );
 
-  const mintToTxId = await mintTo(
+  const mintToTransactionSignature = await mintTo(
     connection,
     payer,
     mint,
@@ -38,26 +40,27 @@ export const compressedMintSplToken = async ({
     compressAmount * 10 ** decimals, // Amount
   );
 
-  console.log(`Create compressed mint success! txId: ${transactionSignature}`);
-
-  // Mint compressed tokens to the payer's account
-  const transferTxId = await transfer(
-    connection,
-    payer,
-    mint,
-    compressAmount * 10 ** decimals, // Amount
-    payer, // Owner
-    payer.publicKey, // To address
+  console.log(
+    `Create compressed mint success! txId: ${createMintTransactionSignature}`,
   );
 
-  console.log(`Minted ${compressAmount} tokens using compressed approach`);
+  // // Mint compressed tokens to the payer's account
+  // const transferTransactionSignature = await transfer(
+  //   connection,
+  //   payer,
+  //   mint,
+  //   compressAmount * 10 ** decimals, // Amount
+  //   payer, // Owner
+  //   payer.publicKey, // To address
+  // );
 
   return {
     mint,
-    transactionSignature,
+    transactions: {
+      createMintTransactionSignature,
+      mintToTransactionSignature,
+    },
     decimals,
-    mintToTxId,
-    transferTxId,
   };
 };
 
@@ -65,7 +68,7 @@ export const regularMintSplToken = async ({
   payer,
   compressAmount,
   decimals,
-}: MintData) => {
+}: MintData): Promise<MintViewData> => {
   const connection = createRpc(DEVNET_RPC_URL, DEVNET_RPC_URL, DEVNET_RPC_URL);
 
   const mint = await createMintRegular(
@@ -89,7 +92,7 @@ export const regularMintSplToken = async ({
   console.log(`ATA: ${ata.address}`);
 
   // Mint tokens to the payer's account
-  const transactionSignature = await mintToSpl(
+  const mintToTransactionSignature = await mintToSpl(
     connection,
     payer,
     mint,
@@ -102,8 +105,8 @@ export const regularMintSplToken = async ({
 
   return {
     mint,
-    transactionSignature,
+    transactions: { mintToTransactionSignature },
     decimals,
-    ata,
+    ata: ata.address,
   };
 };

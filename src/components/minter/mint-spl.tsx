@@ -3,12 +3,11 @@
 import { Form } from "@heroui/form";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
-import { PublicKey } from "@solana/web3.js";
 import { useCallback, useState } from "react";
 import { Card, CardBody, CardFooter } from "@heroui/card";
 import { addToast } from "@heroui/toast";
-import { Account } from "@solana/spl-token";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { Accordion, AccordionItem } from "@heroui/accordion";
 
 import { CopyIcon, CircleCheckIcon, ForbiddenCircleIcon } from "../icons";
 
@@ -21,18 +20,11 @@ import {
   webCompressedMintSplToken,
   webRegularMintSplToken,
 } from "@/services/spl-token/web-confirm";
+import { normalizeKey } from "@/utils/string";
+import { MintViewData } from "@/types";
 
 interface MintSplProps {
   compressionEnabled?: boolean;
-}
-
-interface MintData {
-  mint: PublicKey;
-  transactionSignature: string;
-  decimals: number;
-  ata?: Account;
-  mintToTxId?: string;
-  transferTxId?: string;
 }
 
 export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
@@ -41,7 +33,7 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
   const { sendTransaction, signTransaction } = useWallet();
 
   const [isMinting, setIsMinting] = useState(false);
-  const [mintData, setMintData] = useState<MintData | null>(null);
+  const [mintData, setMintData] = useState<MintViewData | null>(null);
 
   const handleMint = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
@@ -66,7 +58,7 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
             }
 
             result = await webCompressedMintSplToken({
-              publicKey: state.publicKey,
+              payer: state.publicKey,
               compressAmount: compressAmountNumber,
               decimals: decimalsNumber,
               signTransaction,
@@ -85,7 +77,7 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
               throw new Error("Sign transaction not supported");
             }
             result = await webRegularMintSplToken({
-              publicKey: state.publicKey,
+              payer: state.publicKey,
               compressAmount: compressAmountNumber,
               decimals: decimalsNumber,
               signTransaction,
@@ -127,7 +119,7 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
         setIsMinting(false);
       }
     },
-    [compressionEnabled, fetchBalance, state?.keypair, state?.publicKey],
+    [compressionEnabled, fetchBalance, sendTransaction, signTransaction, state],
   );
 
   return (
@@ -231,115 +223,64 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
                   </Button>
                 </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-500 font-medium">
-                  Transaction Signature
-                </p>
-                <div className="font-mono text-sm flex items-center gap-2">
-                  {mintData.transactionSignature}
-                  <Button
-                    isIconOnly
-                    size="sm"
-                    variant="light"
-                    onPress={() => {
-                      navigator.clipboard.writeText(
-                        mintData.transactionSignature,
-                      );
-                    }}
-                  >
-                    <CopyIcon size={16} />
-                  </Button>
-                  <Button
-                    as="a"
-                    href={`https://explorer.solana.com/tx/${mintData.transactionSignature}?cluster=devnet`}
-                    rel="noopener noreferrer"
-                    size="sm"
-                    target="_blank"
-                    variant="light"
-                  >
-                    View
-                  </Button>
-                </div>
-              </div>
+
+              <Accordion>
+                <AccordionItem
+                  key="transactions"
+                  aria-label="transactions"
+                  title="Transactions"
+                >
+                  {Object.entries(mintData.transactions).map(([key, value]) => (
+                    <div key={key}>
+                      <p className="text-sm text-gray-500 font-medium">
+                        {normalizeKey(key)}
+                      </p>
+                      <div className="font-mono text-sm flex items-center gap-2">
+                        {value}
+                        <Button
+                          isIconOnly
+                          size="sm"
+                          variant="light"
+                          onPress={() => {
+                            navigator.clipboard.writeText(value);
+                          }}
+                        >
+                          <CopyIcon size={16} />
+                        </Button>
+                        <Button
+                          as="a"
+                          href={`https://explorer.solana.com/tx/${value}?cluster=devnet`}
+                          rel="noopener noreferrer"
+                          size="sm"
+                          target="_blank"
+                          variant="light"
+                        >
+                          View
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </AccordionItem>
+              </Accordion>
               <div>
                 <p className="text-sm text-gray-500 font-medium">Decimals</p>
                 <p className="font-mono">{mintData.decimals}</p>
               </div>
-              {mintData.mintToTxId && (
-                <div>
-                  <p className="text-sm text-gray-500 font-medium">
-                    Mint-To Transaction ID
-                  </p>
-                  <div className="font-mono text-sm flex items-center gap-2">
-                    {mintData.mintToTxId}
-                    <Button
-                      isIconOnly
-                      size="sm"
-                      variant="light"
-                      onPress={() => {
-                        navigator.clipboard.writeText(mintData.mintToTxId!);
-                      }}
-                    >
-                      <CopyIcon size={16} />
-                    </Button>
-                    <Button
-                      as="a"
-                      href={`https://explorer.solana.com/tx/${mintData.mintToTxId}?cluster=devnet`}
-                      rel="noopener noreferrer"
-                      size="sm"
-                      target="_blank"
-                      variant="light"
-                    >
-                      View
-                    </Button>
-                  </div>
-                </div>
-              )}
-              {mintData.transferTxId && (
-                <div>
-                  <p className="text-sm text-gray-500 font-medium">
-                    Transfer Transaction ID
-                  </p>
-                  <div className="font-mono text-sm flex items-center gap-2">
-                    {mintData.transferTxId}
-                    <Button
-                      isIconOnly
-                      size="sm"
-                      variant="light"
-                      onPress={() => {
-                        navigator.clipboard.writeText(mintData.transferTxId!);
-                      }}
-                    >
-                      <CopyIcon size={16} />
-                    </Button>
-                    <Button
-                      as="a"
-                      href={`https://explorer.solana.com/tx/${mintData.transferTxId}?cluster=devnet`}
-                      rel="noopener noreferrer"
-                      size="sm"
-                      target="_blank"
-                      variant="light"
-                    >
-                      View
-                    </Button>
-                  </div>
-                </div>
-              )}
               {mintData.ata && (
                 <div>
                   <p className="text-sm text-gray-500 font-medium">
                     Associated Token Address (ATA)
                   </p>
                   <div className="font-mono text-sm flex items-center gap-2">
-                    {mintData.ata?.address.toBase58()}
+                    {mintData.ata.toBase58()}
                     <Button
                       isIconOnly
                       size="sm"
                       variant="light"
                       onPress={() => {
-                        if (mintData.ata?.address) {
+                        if (mintData.ata) {
                           navigator.clipboard.writeText(
-                            mintData.ata.address.toBase58(),
+                            mintData.ata.toBase58(),
                           );
                         }
                       }}
@@ -348,7 +289,7 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
                     </Button>
                     <Button
                       as="a"
-                      href={`https://explorer.solana.com/address/${mintData.ata?.address.toBase58()}?cluster=devnet`}
+                      href={`https://explorer.solana.com/address/${mintData.ata.toBase58()}?cluster=devnet`}
                       rel="noopener noreferrer"
                       size="sm"
                       target="_blank"

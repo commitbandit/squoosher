@@ -1,24 +1,15 @@
 import {
   Keypair,
   VersionedTransaction,
-  TransactionMessage,
   SystemProgram,
   Transaction,
-  sendAndConfirmTransaction,
   PublicKey,
+  TransactionSignature,
+  Connection,
 } from "@solana/web3.js";
+import { createRpc, pickRandomTreeAndQueue } from "@lightprotocol/stateless.js";
+import { CompressedTokenProgram } from "@lightprotocol/compressed-token";
 import {
-  createRpc,
-  pickRandomTreeAndQueue,
-  sendAndConfirmTx,
-} from "@lightprotocol/stateless.js";
-import {
-  CompressedTokenProgram,
-  compress,
-} from "@lightprotocol/compressed-token";
-import {
-  mintTo as mintToSpl,
-  getOrCreateAssociatedTokenAccount,
   ExtensionType,
   TYPE_SIZE,
   LENGTH_SIZE,
@@ -26,14 +17,21 @@ import {
   createInitializeMetadataPointerInstruction,
   TOKEN_2022_PROGRAM_ID,
   createInitializeMintInstruction,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  TOKEN_PROGRAM_ID,
+  getAssociatedTokenAddress,
+  createMintToInstruction,
+  createAssociatedTokenAccountInstruction,
 } from "@solana/spl-token";
 import {
   createInitializeInstruction,
   pack,
   TokenMetadata,
 } from "@solana/spl-token-metadata";
+import { SendTransactionOptions } from "@solana/wallet-adapter-base";
 
 import { DEVNET_RPC_URL } from "@/config";
+import { MintViewData } from "@/types";
 
 type MintData = {
   mintAmount: number;
@@ -42,7 +40,15 @@ type MintData = {
   symbol: string;
   uri: string;
   additionalMetadata: [string, string][];
-  publicKey: PublicKey;
+  payer: PublicKey;
+  sendTransaction: (
+    transaction: Transaction | VersionedTransaction,
+    connection: Connection,
+    options?: SendTransactionOptions,
+  ) => Promise<TransactionSignature>;
+  signTransaction: <T extends Transaction | VersionedTransaction>(
+    transaction: T,
+  ) => Promise<T>;
 };
 
 export const compressedMintSplToken2022 = async ({
@@ -52,8 +58,9 @@ export const compressedMintSplToken2022 = async ({
   symbol,
   uri,
   additionalMetadata,
-  publicKey,
-}: MintData) => {
+  payer,
+  sendTransaction,
+}: MintData): Promise<MintViewData> => {
   const mint = Keypair.generate();
 
   const metadata: TokenMetadata = {
@@ -80,8 +87,8 @@ export const compressedMintSplToken2022 = async ({
 
   const [createMintAccountIx, initializeMintIx, createTokenPoolIx] =
     await CompressedTokenProgram.createMint({
-      feePayer: publicKey,
-      authority: publicKey,
+      feePayer: payer,
+      authority: payer,
       mint: mint.publicKey,
       decimals,
       freezeAuthority: null,
@@ -94,7 +101,7 @@ export const compressedMintSplToken2022 = async ({
     createMintAccountIx,
     createInitializeMetadataPointerInstruction(
       mint.publicKey,
-      publicKey,
+      payer,
       mint.publicKey,
       tokenProgramId,
     ),
@@ -106,75 +113,73 @@ export const compressedMintSplToken2022 = async ({
       name: metadata.name,
       symbol: metadata.symbol,
       uri: metadata.uri,
-      mintAuthority: publicKey,
-      updateAuthority: publicKey,
+      mintAuthority: payer,
+      updateAuthority: payer,
     }),
     createTokenPoolIx,
   ];
 
-  const messageV0 = new TransactionMessage({
-    payerKey: publicKey,
-    recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-    instructions,
-  }).compileToV0Message();
-
-  const mintTransaction = new VersionedTransaction(messageV0);
-
-  mintTransaction.sign([publicKey, mint]);
-
-  const txId = await sendAndConfirmTx(connection, mintTransaction);
-
-  console.log(`txId: ${txId}`);
-  const ata = await getOrCreateAssociatedTokenAccount(
+  const createMintTransactionSignature = await sendTransaction(
+    new Transaction().add(...instructions),
     connection,
-    payer,
-    mint.publicKey,
-    payer.publicKey,
-    undefined,
-    undefined,
-    undefined,
-    tokenProgramId,
+    {
+      signers: [mint],
+    },
   );
 
-  console.log(`ATA: ${ata.address}`);
-  /// Mint SPL
-  const mintTxId = await mintToSpl(
-    connection,
-    payer,
-    mint.publicKey,
-    ata.address,
-    payer.publicKey,
-    mintAmount * 10 ** decimals, // Amount
-    undefined,
-    undefined,
-    tokenProgramId,
+  console.log(
+    `createMintTransactionSignature: ${createMintTransactionSignature}`,
   );
 
-  console.log(`mint-spl success! txId: ${mintTxId}`);
-
-  const compressedTokenTxId = await compress(
-    connection,
-    payer,
+  const associatedToken = await getAssociatedTokenAddress(
     mint.publicKey,
-    mintAmount * 10 ** decimals, // Amount
     payer,
-    ata.address,
-    payer.publicKey,
-    tree,
-    undefined,
-    tokenProgramId,
+    false,
+    TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID,
   );
 
-  console.log(`compressed-token success! txId: ${compressedTokenTxId}`);
+  //TODO: or separate mint and compress
+  const transaction = new Transaction().add(
+    createAssociatedTokenAccountInstruction(
+      payer,
+      associatedToken,
+      payer,
+      mint.publicKey,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+    ),
+    createMintToInstruction(
+      mint.publicKey,
+      associatedToken,
+      payer,
+      mintAmount * 10 ** decimals,
+    ),
+    await CompressedTokenProgram.compress({
+      payer,
+      owner: payer,
+      source: associatedToken,
+      toAddress: payer,
+      mint: mint.publicKey,
+      amount: mintAmount * 10 ** decimals,
+      tokenProgramId,
+      outputStateTree: tree,
+    }),
+  );
 
-  console.log(`Minted ${mintAmount} tokens using compressed approach`);
+  const compressedTokenTransactionSignature = await sendTransaction(
+    transaction,
+    connection,
+  );
 
   return {
-    ata,
     mint: mint.publicKey,
-    mintTxId,
-    compressedTokenTxId,
+    transactions: {
+      createMintTransactionSignature,
+      compressedTokenTransactionSignature,
+    },
     decimals,
+    ata: associatedToken,
   };
 };
 
@@ -186,7 +191,8 @@ export const regularMintSplToken2022 = async ({
   uri,
   additionalMetadata,
   payer,
-}: MintData) => {
+  sendTransaction,
+}: MintData): Promise<MintViewData> => {
   const mint = Keypair.generate();
 
   const metadata: TokenMetadata = {
@@ -211,7 +217,7 @@ export const regularMintSplToken2022 = async ({
 
   const mintTransaction = new Transaction().add(
     SystemProgram.createAccount({
-      fromPubkey: payer.publicKey,
+      fromPubkey: payer,
       newAccountPubkey: mint.publicKey,
       space: mintLen,
       lamports: mintLamports,
@@ -219,14 +225,14 @@ export const regularMintSplToken2022 = async ({
     }),
     createInitializeMetadataPointerInstruction(
       mint.publicKey,
-      payer.publicKey,
+      payer,
       mint.publicKey,
       tokenProgramId,
     ),
     createInitializeMintInstruction(
       mint.publicKey,
       decimals,
-      payer.publicKey,
+      payer,
       null,
       tokenProgramId,
     ),
@@ -237,49 +243,62 @@ export const regularMintSplToken2022 = async ({
       name: metadata.name,
       symbol: metadata.symbol,
       uri: metadata.uri,
-      mintAuthority: payer.publicKey,
-      updateAuthority: payer.publicKey,
+      mintAuthority: payer,
+      updateAuthority: payer,
     }),
   );
 
-  const txId = await sendAndConfirmTransaction(connection, mintTransaction, [
-    payer,
-    mint,
-  ]);
-
-  console.log(`txId: ${txId}`);
-  const ata = await getOrCreateAssociatedTokenAccount(
+  const createMintTransactionSignature = await sendTransaction(
+    mintTransaction,
     connection,
-    payer,
-    mint.publicKey,
-    payer.publicKey,
-    undefined,
-    undefined,
-    undefined,
-    tokenProgramId,
+    {
+      signers: [mint],
+    },
   );
 
-  console.log(`ATA: ${ata.address}`);
-  const mintTxId = await mintToSpl(
-    connection,
-    payer,
+  console.log(
+    `mint-spl-token-2022 success! txId: ${createMintTransactionSignature}`,
+  );
+  const associatedToken = await getAssociatedTokenAddress(
     mint.publicKey,
-    ata.address,
-    payer.publicKey,
-    mintAmount * 10 ** decimals, // Amount
-    undefined,
-    undefined,
-    tokenProgramId,
+    payer,
+    false,
+    TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID,
   );
 
-  console.log(`mint-spl success! txId: ${mintTxId}`);
+  console.log(`ATA: ${associatedToken}`);
 
-  console.log(`Minted ${mintAmount} tokens using compressed approach`);
+  const mintToTransaction = new Transaction().add(
+    createAssociatedTokenAccountInstruction(
+      payer,
+      associatedToken,
+      payer,
+      mint.publicKey,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+    ),
+    createMintToInstruction(
+      mint.publicKey,
+      associatedToken,
+      payer,
+      mintAmount * 10 ** decimals,
+    ),
+  );
+  const mintToTransactionSignature = await sendTransaction(
+    mintToTransaction,
+    connection,
+  );
+
+  console.log(`mint-spl-token-2022 success! txId: ${mintToTransaction}`);
 
   return {
-    ata,
     mint: mint.publicKey,
-    mintTxId,
+    transactions: {
+      createMintTransactionSignature,
+      mintToTransactionSignature,
+    },
     decimals,
+    ata: associatedToken,
   };
 };
