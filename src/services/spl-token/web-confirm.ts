@@ -25,7 +25,7 @@ import { MintViewData } from "@/types";
 
 type MintData = {
   payer: PublicKey;
-  compressAmount: number;
+  mintAmount: number;
   decimals: number;
   sendTransaction: (
     transaction: Transaction | VersionedTransaction,
@@ -39,7 +39,7 @@ type MintData = {
 
 export const webCompressedMintSplToken = async ({
   payer,
-  compressAmount,
+  mintAmount,
   decimals,
   sendTransaction,
 }: MintData): Promise<MintViewData> => {
@@ -65,7 +65,7 @@ export const webCompressedMintSplToken = async ({
       mint: mint.publicKey,
       authority: payer,
       toPubkey: payer,
-      amount: compressAmount * 10 ** decimals,
+      amount: mintAmount * 10 ** decimals,
     }),
   );
 
@@ -90,7 +90,7 @@ export const webCompressedMintSplToken = async ({
 
 export const webRegularMintSplToken = async ({
   payer,
-  compressAmount,
+  mintAmount,
   decimals,
   sendTransaction,
 }: MintData): Promise<MintViewData> => {
@@ -148,7 +148,7 @@ export const webRegularMintSplToken = async ({
       mint.publicKey,
       associatedToken,
       payer,
-      compressAmount * 10 ** decimals,
+      mintAmount * 10 ** decimals,
     ),
   );
 

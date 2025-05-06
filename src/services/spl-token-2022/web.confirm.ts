@@ -51,7 +51,7 @@ type MintData = {
   ) => Promise<T>;
 };
 
-export const compressedMintSplToken2022 = async ({
+export const webCompressedMintSplToken2022 = async ({
   mintAmount,
   decimals,
   name,
@@ -183,7 +183,7 @@ export const compressedMintSplToken2022 = async ({
   };
 };
 
-export const regularMintSplToken2022 = async ({
+export const webRegularMintSplToken2022 = async ({
   mintAmount,
   decimals,
   name,

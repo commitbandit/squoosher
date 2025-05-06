@@ -6,9 +6,11 @@ import { Input } from "@heroui/input";
 import { useCallback, useState } from "react";
 import { Card, CardBody, CardFooter } from "@heroui/card";
 import { addToast } from "@heroui/toast";
-import { Accordion, AccordionItem } from "@heroui/accordion";
+import { useWallet } from "@solana/wallet-adapter-react";
 
-import { CopyIcon, CircleCheckIcon, ForbiddenCircleIcon } from "../icons";
+import { CircleCheckIcon, ForbiddenCircleIcon } from "../icons";
+
+import { MintViewComponent } from "./mint-view-component";
 
 import {
   compressedMintSplToken2022,
@@ -16,7 +18,10 @@ import {
 } from "@/services/spl-token-2022";
 import { useWalletContext } from "@/contexts/wallet-context";
 import { MintViewData } from "@/types";
-import { normalizeKey } from "@/utils/string";
+import {
+  webCompressedMintSplToken2022,
+  webRegularMintSplToken2022,
+} from "@/services/spl-token-2022/web.confirm";
 
 interface MintSpl2022Props {
   compressionEnabled?: boolean;
@@ -37,6 +42,8 @@ export default function MintSplToken2022({
     name: string;
     symbol: string;
   }>({ name: "", symbol: "" });
+
+  const { sendTransaction, signTransaction } = useWallet();
 
   const handleMint = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
@@ -63,37 +70,67 @@ export default function MintSplToken2022({
         const mintAmountNumber = parseInt(mintAmount);
         const decimalsNumber = parseInt(decimals);
 
-        let mintData: MintViewData | null = null;
+        let result: MintViewData | null = null;
 
         if (compressionEnabled) {
-          mintData = await compressedMintSplToken2022({
-            mintAmount: mintAmountNumber,
-            decimals: decimalsNumber,
-            name,
-            symbol,
-            uri,
-            additionalMetadata: filteredMetadata,
-            //TODO: Add payer
-            payer: state?.keypair,
-          });
+          if (!state.keypair) {
+            if (!signTransaction) {
+              throw new Error("Sign transaction not supported");
+            }
+
+            result = await webCompressedMintSplToken2022({
+              mintAmount: mintAmountNumber,
+              decimals: decimalsNumber,
+              name,
+              symbol,
+              uri,
+              additionalMetadata: filteredMetadata,
+              payer: state.publicKey,
+              sendTransaction,
+              signTransaction,
+            });
+          } else {
+            result = await compressedMintSplToken2022({
+              mintAmount: mintAmountNumber,
+              decimals: decimalsNumber,
+              name,
+              symbol,
+              uri,
+              additionalMetadata: filteredMetadata,
+              payer: state?.keypair,
+            });
+          }
         } else {
-          mintData = await regularMintSplToken2022({
-            mintAmount: mintAmountNumber,
-            decimals: decimalsNumber,
-            name,
-            symbol,
-            uri,
-            additionalMetadata: filteredMetadata,
-            //TODO: Add payer
-            payer: state?.keypair,
-          });
+          if (!state.keypair) {
+            if (!signTransaction) {
+              throw new Error("Sign transaction not supported");
+            }
+            result = await webRegularMintSplToken2022({
+              mintAmount: mintAmountNumber,
+              decimals: decimalsNumber,
+              name,
+              symbol,
+              uri,
+              additionalMetadata: filteredMetadata,
+              payer: state.publicKey,
+              sendTransaction,
+              signTransaction,
+            });
+          } else {
+            result = await regularMintSplToken2022({
+              mintAmount: mintAmountNumber,
+              decimals: decimalsNumber,
+              name,
+              symbol,
+              uri,
+              additionalMetadata: filteredMetadata,
+              payer: state?.keypair,
+            });
+          }
         }
 
         await fetchBalance(state?.publicKey);
-        setMintData(mintData);
-        console.log(
-          `Minted ${mintAmountNumber} tokens using ${compressionEnabled ? "compressed" : "regular"} approach`,
-        );
+        setMintData(result);
 
         addToast({
           title: "Mint Successful",
@@ -114,7 +151,14 @@ export default function MintSplToken2022({
         setIsMinting(false);
       }
     },
-    [additionalMetadataPairs, compressionEnabled, fetchBalance, state],
+    [
+      additionalMetadataPairs,
+      compressionEnabled,
+      fetchBalance,
+      sendTransaction,
+      signTransaction,
+      state,
+    ],
   );
 
   const addMetadataPair = () => {
@@ -339,184 +383,69 @@ export default function MintSplToken2022({
 
       {mintData && (
         <div className="mt-8 space-y-4">
-          <h3 className="text-lg font-medium">Mint Data</h3>
-          <Card className="border-none shadow-none w-full">
-            <CardBody className="grid grid-cols-1 gap-3">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Token Type</p>
-                <p className="font-medium">
-                  {compressionEnabled
-                    ? "Compressed SPL Token 2022"
-                    : "Regular SPL Token 2022"}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 font-medium">
-                  Mint Address
-                </p>
-                <div className="font-mono text-sm flex items-center gap-2">
-                  {mintData.mint.toBase58()}
-                  <Button
-                    isIconOnly
-                    size="sm"
-                    variant="light"
-                    onPress={() => {
-                      navigator.clipboard.writeText(mintData.mint.toBase58());
-                    }}
-                  >
-                    <CopyIcon size={16} />
-                  </Button>
-                  <Button
-                    as="a"
-                    href={`https://explorer.solana.com/address/${mintData.mint.toBase58()}?cluster=devnet`}
-                    rel="noopener noreferrer"
-                    size="sm"
-                    target="_blank"
-                    variant="light"
-                  >
-                    View
-                  </Button>
-                </div>
-              </div>
-              <Accordion>
-                <AccordionItem
-                  key="transactions"
-                  aria-label="transactions"
-                  title="Transactions"
-                >
-                  {Object.entries(mintData.transactions).map(([key, value]) => (
-                    <div key={key}>
-                      <p className="text-sm text-gray-500 font-medium">
-                        {normalizeKey(key)}
-                      </p>
-                      <div className="font-mono text-sm flex items-center gap-2">
-                        {value}
-                        <Button
-                          isIconOnly
-                          size="sm"
-                          variant="light"
-                          onPress={() => {
-                            navigator.clipboard.writeText(value);
-                          }}
-                        >
-                          <CopyIcon size={16} />
-                        </Button>
-                        <Button
-                          as="a"
-                          href={`https://explorer.solana.com/tx/${value}?cluster=devnet`}
-                          rel="noopener noreferrer"
-                          size="sm"
-                          target="_blank"
-                          variant="light"
-                        >
-                          View
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </AccordionItem>
-              </Accordion>
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Decimals</p>
-                <p className="font-mono">{mintData.decimals}</p>
-              </div>
+          <MintViewComponent
+            compressionEnabled={compressionEnabled}
+            mintData={mintData}
+          />
 
-              {mintData.ata && (
-                <div>
-                  <p className="text-sm text-gray-500 font-medium">
-                    Associated Token Address (ATA)
-                  </p>
-                  <div className="font-mono text-sm flex items-center gap-2">
-                    {mintData.ata.toBase58()}
-                    <Button
-                      isIconOnly
-                      size="sm"
-                      variant="light"
-                      onPress={() => {
-                        if (mintData.ata) {
-                          navigator.clipboard.writeText(
-                            mintData.ata.toBase58(),
-                          );
-                        }
-                      }}
-                    >
-                      <CopyIcon size={16} />
-                    </Button>
-                    <Button
-                      as="a"
-                      href={`https://explorer.solana.com/address/${mintData.ata.toBase58()}?cluster=devnet`}
-                      rel="noopener noreferrer"
-                      size="sm"
-                      target="_blank"
-                      variant="light"
-                    >
-                      View
-                    </Button>
-                  </div>
-                </div>
-              )}
-              <div>
-                <p className="text-sm text-gray-500 font-medium">
-                  Token Details
-                </p>
-                <div className="grid grid-cols-2 gap-2 mt-1">
-                  <div className="bg-gray-50 p-2 rounded">
-                    <p className="text-xs font-medium">Name</p>
-                    <p className="text-sm truncate">{formValues.name}</p>
-                  </div>
-                  <div className="bg-gray-50 p-2 rounded">
-                    <p className="text-xs font-medium">Symbol</p>
-                    <p className="text-sm">{formValues.symbol}</p>
-                  </div>
-                </div>
+          <div>
+            <p className="text-sm text-gray-500 font-medium">Token Details</p>
+            <div className="grid grid-cols-2 gap-2 mt-1">
+              <div className="bg-gray-50 p-2 rounded">
+                <p className="text-xs font-medium">Name</p>
+                <p className="text-sm truncate">{formValues.name}</p>
               </div>
-              {uriInput && (
-                <div>
-                  <p className="text-sm text-gray-500 font-medium">Token URI</p>
-                  <div className="mt-1 flex items-start gap-2">
-                    <div className="flex-1 break-all text-sm font-mono">
-                      {uriInput}
-                    </div>
-                    {!imageError && (
-                      <div className="flex-shrink-0">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          alt="Token Preview"
-                          className="size-12 object-contain rounded border"
-                          src={uriInput}
-                          onError={handleImageError}
-                        />
-                      </div>
-                    )}
-                  </div>
+              <div className="bg-gray-50 p-2 rounded">
+                <p className="text-xs font-medium">Symbol</p>
+                <p className="text-sm">{formValues.symbol}</p>
+              </div>
+            </div>
+          </div>
+          {uriInput && (
+            <div>
+              <p className="text-sm text-gray-500 font-medium">Token URI</p>
+              <div className="mt-1 flex items-start gap-2">
+                <div className="flex-1 break-all text-sm font-mono">
+                  {uriInput}
                 </div>
-              )}
-              {additionalMetadataPairs.length > 0 &&
-                additionalMetadataPairs[0][0] !== "" && (
-                  <div>
-                    <p className="text-sm text-gray-500 font-medium">
-                      Additional Metadata
-                    </p>
-                    <div className="mt-1 space-y-1">
-                      {additionalMetadataPairs
-                        .filter(
-                          ([key, value]) =>
-                            key.trim() !== "" && value.trim() !== "",
-                        )
-                        .map(([key, value], index) => (
-                          <div
-                            key={index}
-                            className="grid grid-cols-2 gap-2 text-sm"
-                          >
-                            <div className="font-medium">{key}</div>
-                            <div>{value}</div>
-                          </div>
-                        ))}
-                    </div>
+                {!imageError && (
+                  <div className="flex-shrink-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      alt="Token Preview"
+                      className="size-12 object-contain rounded border"
+                      src={uriInput}
+                      onError={handleImageError}
+                    />
                   </div>
                 )}
-            </CardBody>
-          </Card>
+              </div>
+            </div>
+          )}
+          {additionalMetadataPairs.length > 0 &&
+            additionalMetadataPairs[0][0] !== "" && (
+              <div>
+                <p className="text-sm text-gray-500 font-medium">
+                  Additional Metadata
+                </p>
+                <div className="mt-1 space-y-1">
+                  {additionalMetadataPairs
+                    .filter(
+                      ([key, value]) =>
+                        key.trim() !== "" && value.trim() !== "",
+                    )
+                    .map(([key, value], index) => (
+                      <div
+                        key={index}
+                        className="grid grid-cols-2 gap-2 text-sm"
+                      >
+                        <div className="font-medium">{key}</div>
+                        <div>{value}</div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
         </div>
       )}
     </div>

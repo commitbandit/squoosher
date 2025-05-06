@@ -12,13 +12,13 @@ import { MintViewData } from "@/types";
 
 type MintData = {
   payer: Keypair;
-  compressAmount: number;
+  mintAmount: number;
   decimals: number;
 };
 
 export const compressedMintSplToken = async ({
   payer,
-  compressAmount,
+  mintAmount,
   decimals,
 }: MintData): Promise<MintViewData> => {
   const connection = createRpc(DEVNET_RPC_URL, DEVNET_RPC_URL, DEVNET_RPC_URL);
@@ -37,7 +37,7 @@ export const compressedMintSplToken = async ({
     mint,
     payer.publicKey,
     payer,
-    compressAmount * 10 ** decimals, // Amount
+    mintAmount * 10 ** decimals, // Amount
   );
 
   console.log(
@@ -49,7 +49,7 @@ export const compressedMintSplToken = async ({
   //   connection,
   //   payer,
   //   mint,
-  //   compressAmount * 10 ** decimals, // Amount
+  //   mintAmount * 10 ** decimals, // Amount
   //   payer, // Owner
   //   payer.publicKey, // To address
   // );
@@ -66,7 +66,7 @@ export const compressedMintSplToken = async ({
 
 export const regularMintSplToken = async ({
   payer,
-  compressAmount,
+  mintAmount,
   decimals,
 }: MintData): Promise<MintViewData> => {
   const connection = createRpc(DEVNET_RPC_URL, DEVNET_RPC_URL, DEVNET_RPC_URL);
@@ -98,10 +98,10 @@ export const regularMintSplToken = async ({
     mint,
     ata.address,
     payer,
-    compressAmount * 10 ** decimals,
+    mintAmount * 10 ** decimals,
   );
 
-  console.log(`Minted ${compressAmount} tokens using regular approach`);
+  console.log(`Minted ${mintAmount} tokens using regular approach`);
 
   return {
     mint,

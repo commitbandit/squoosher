@@ -7,9 +7,10 @@ import { useCallback, useState } from "react";
 import { Card, CardBody, CardFooter } from "@heroui/card";
 import { addToast } from "@heroui/toast";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { Accordion, AccordionItem } from "@heroui/accordion";
 
-import { CopyIcon, CircleCheckIcon, ForbiddenCircleIcon } from "../icons";
+import { CircleCheckIcon, ForbiddenCircleIcon } from "../icons";
+
+import { MintViewComponent } from "./mint-view-component";
 
 import { useWalletContext } from "@/contexts/wallet-context";
 import {
@@ -20,7 +21,6 @@ import {
   webCompressedMintSplToken,
   webRegularMintSplToken,
 } from "@/services/spl-token/web-confirm";
-import { normalizeKey } from "@/utils/string";
 import { MintViewData } from "@/types";
 
 interface MintSplProps {
@@ -41,12 +41,12 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
       try {
         if (!state) throw new Error("Wallet not connected");
         const formData = new FormData(e.currentTarget);
-        const compressAmount = formData.get("compressAmount") as string;
+        const mintAmount = formData.get("mintAmount") as string;
         const decimals = formData.get("decimals") as string;
 
         setIsMinting(true);
 
-        const compressAmountNumber = parseInt(compressAmount);
+        const mintAmountNumber = parseInt(mintAmount);
         const decimalsNumber = parseInt(decimals);
 
         let result;
@@ -59,7 +59,7 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
 
             result = await webCompressedMintSplToken({
               payer: state.publicKey,
-              compressAmount: compressAmountNumber,
+              mintAmount: mintAmountNumber,
               decimals: decimalsNumber,
               signTransaction,
               sendTransaction,
@@ -67,7 +67,7 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
           } else {
             result = await compressedMintSplToken({
               payer: state.keypair,
-              compressAmount: compressAmountNumber,
+              mintAmount: mintAmountNumber,
               decimals: decimalsNumber,
             });
           }
@@ -78,7 +78,7 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
             }
             result = await webRegularMintSplToken({
               payer: state.publicKey,
-              compressAmount: compressAmountNumber,
+              mintAmount: mintAmountNumber,
               decimals: decimalsNumber,
               signTransaction,
               sendTransaction,
@@ -86,7 +86,7 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
           } else {
             result = await regularMintSplToken({
               payer: state.keypair,
-              compressAmount: compressAmountNumber,
+              mintAmount: mintAmountNumber,
               decimals: decimalsNumber,
             });
           }
@@ -97,12 +97,12 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
         setMintData(result);
 
         console.log(
-          `Minted ${compressAmountNumber} tokens using ${compressionEnabled ? "compressed" : "regular"} approach`,
+          `Minted ${mintAmountNumber} tokens using ${compressionEnabled ? "compressed" : "regular"} approach`,
         );
 
         addToast({
           title: "Mint Successful",
-          description: `Successfully minted ${compressAmountNumber} tokens ${compressionEnabled ? "with" : "without"} compression`,
+          description: `Successfully minted ${mintAmountNumber} tokens ${compressionEnabled ? "with" : "without"} compression`,
           color: "success",
           icon: <CircleCheckIcon />,
         });
@@ -193,116 +193,10 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
       </Form>
 
       {mintData && (
-        <div className="mt-8 space-y-4">
-          <h3 className="text-lg font-medium">Mint Data</h3>
-          <Card className="border-none shadow-none w-full">
-            <CardBody className="grid grid-cols-1 gap-3">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Token Type</p>
-                <p className="font-medium">
-                  {compressionEnabled
-                    ? "Compressed SPL Token"
-                    : "Regular SPL Token"}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 font-medium">
-                  Mint Address
-                </p>
-                <div className="font-mono text-sm flex items-center gap-2">
-                  {mintData.mint.toBase58()}
-                  <Button
-                    isIconOnly
-                    size="sm"
-                    variant="light"
-                    onPress={() => {
-                      navigator.clipboard.writeText(mintData.mint.toBase58());
-                    }}
-                  >
-                    <CopyIcon size={16} />
-                  </Button>
-                </div>
-              </div>
-
-              <Accordion>
-                <AccordionItem
-                  key="transactions"
-                  aria-label="transactions"
-                  title="Transactions"
-                >
-                  {Object.entries(mintData.transactions).map(([key, value]) => (
-                    <div key={key}>
-                      <p className="text-sm text-gray-500 font-medium">
-                        {normalizeKey(key)}
-                      </p>
-                      <div className="font-mono text-sm flex items-center gap-2">
-                        {value}
-                        <Button
-                          isIconOnly
-                          size="sm"
-                          variant="light"
-                          onPress={() => {
-                            navigator.clipboard.writeText(value);
-                          }}
-                        >
-                          <CopyIcon size={16} />
-                        </Button>
-                        <Button
-                          as="a"
-                          href={`https://explorer.solana.com/tx/${value}?cluster=devnet`}
-                          rel="noopener noreferrer"
-                          size="sm"
-                          target="_blank"
-                          variant="light"
-                        >
-                          View
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </AccordionItem>
-              </Accordion>
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Decimals</p>
-                <p className="font-mono">{mintData.decimals}</p>
-              </div>
-              {mintData.ata && (
-                <div>
-                  <p className="text-sm text-gray-500 font-medium">
-                    Associated Token Address (ATA)
-                  </p>
-                  <div className="font-mono text-sm flex items-center gap-2">
-                    {mintData.ata.toBase58()}
-                    <Button
-                      isIconOnly
-                      size="sm"
-                      variant="light"
-                      onPress={() => {
-                        if (mintData.ata) {
-                          navigator.clipboard.writeText(
-                            mintData.ata.toBase58(),
-                          );
-                        }
-                      }}
-                    >
-                      <CopyIcon size={16} />
-                    </Button>
-                    <Button
-                      as="a"
-                      href={`https://explorer.solana.com/address/${mintData.ata.toBase58()}?cluster=devnet`}
-                      rel="noopener noreferrer"
-                      size="sm"
-                      target="_blank"
-                      variant="light"
-                    >
-                      View
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </CardBody>
-          </Card>
-        </div>
+        <MintViewComponent
+          compressionEnabled={compressionEnabled}
+          mintData={mintData}
+        />
       )}
     </div>
   );
