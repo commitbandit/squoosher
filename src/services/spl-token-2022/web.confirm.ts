@@ -7,7 +7,7 @@ import {
   TransactionSignature,
   Connection,
 } from "@solana/web3.js";
-import { createRpc, pickRandomTreeAndQueue } from "@lightprotocol/stateless.js";
+import { createRpc } from "@lightprotocol/stateless.js";
 import { CompressedTokenProgram } from "@lightprotocol/compressed-token";
 import {
   ExtensionType,
@@ -74,8 +74,8 @@ export const webCompressedMintSplToken2022 = async ({
 
   const connection = createRpc(DEVNET_RPC_URL, DEVNET_RPC_URL, DEVNET_RPC_URL);
 
-  const activeStateTrees = await connection.getCachedActiveStateTreeInfo();
-  const { tree } = pickRandomTreeAndQueue(activeStateTrees);
+  // const activeStateTrees = await connection.getCachedActiveStateTreeInfo();
+  // const { tree } = pickRandomTreeAndQueue(activeStateTrees);
 
   const metadataExtension = TYPE_SIZE + LENGTH_SIZE;
 

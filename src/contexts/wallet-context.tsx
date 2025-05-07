@@ -185,6 +185,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                 };
               }
             } catch (e) {
+              console.error("Error fetching token metadata:", e);
+
               return { ...token, symbol: "UNKNOWN", name: "UNKNOWN" };
             }
           }),
@@ -249,6 +251,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
           // Attempt to decode the key as base58
           secretKey = bs58.decode(privateKeyString);
         } catch (error) {
+          console.error("Error decoding private key:", error);
           // If it fails, check if it's a raw array representation
           try {
             const parsedArray = JSON.parse(privateKeyString);
@@ -259,6 +262,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
               throw new Error("Invalid key format");
             }
           } catch (parseError) {
+            console.error("Error parsing private key:", parseError);
             throw new Error("Invalid private key format");
           }
         }

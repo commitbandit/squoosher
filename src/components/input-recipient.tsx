@@ -97,6 +97,10 @@ export const InputRecipient = () => {
 
             return null;
           } catch (error) {
+            console.error("Error validating recipient address", {
+              cause: error,
+            });
+
             return "Please enter a valid Solana address";
           }
         }}
