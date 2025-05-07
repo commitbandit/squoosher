@@ -28,5 +28,11 @@ export const siteConfig = {
       longDescription:
         "Next-generation SPL Token program with support for features like transfer fees, interest-bearing tokens, confidential transfers, and multisig authorities.",
     },
+    {
+      title: "Airdrop Creator",
+      href: "/airdrop-creator",
+      shortDescription: "Create Airdrop with Compressed Tokens",
+      longDescription: "Next-generation SPL Token program.",
+    },
   ],
 };
