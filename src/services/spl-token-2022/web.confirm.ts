@@ -7,7 +7,7 @@ import {
   TransactionSignature,
   Connection,
 } from "@solana/web3.js";
-import { createRpc } from "@lightprotocol/stateless.js";
+import { createRpc, pickRandomTreeAndQueue } from "@lightprotocol/stateless.js";
 import { CompressedTokenProgram } from "@lightprotocol/compressed-token";
 import {
   ExtensionType,
@@ -74,8 +74,8 @@ export const webCompressedMintSplToken2022 = async ({
 
   const connection = createRpc(DEVNET_RPC_URL, DEVNET_RPC_URL, DEVNET_RPC_URL);
 
-  // const activeStateTrees = await connection.getCachedActiveStateTreeInfo();
-  // const { tree } = pickRandomTreeAndQueue(activeStateTrees);
+  const activeStateTrees = await connection.getCachedActiveStateTreeInfo();
+  const { tree } = pickRandomTreeAndQueue(activeStateTrees);
 
   const metadataExtension = TYPE_SIZE + LENGTH_SIZE;
 
@@ -193,38 +193,38 @@ export const webCompressedMintSplToken2022 = async ({
     connection,
   );
 
-  //NOTE: Compress is not working
-  //3 COMPRESS
-  // const initializeCompressedToken = await CompressedTokenProgram.compress({
-  //   payer,
-  //   owner: payer,
-  //   source: associatedToken,
-  //   toAddress: payer,
-  //   mint: mint.publicKey,
-  //   amount: mintAmount * 10 ** decimals,
-  //   tokenProgramId,
-  //   outputStateTree: tree,
-  // });
+  // 3 COMPRESS
+  const initializeCompressedToken = await CompressedTokenProgram.compress({
+    payer,
+    owner: payer,
+    source: associatedToken,
+    toAddress: payer,
+    mint: mint.publicKey,
+    amount: mintAmount * 10 ** decimals,
+    tokenProgramId,
+    outputStateTree: tree,
+  });
 
-  // const compressTransaction = new Transaction({ feePayer: payer }).add(
-  //   initializeCompressedToken,
-  // );
+  const compressTransaction = new Transaction({ feePayer: payer }).add(
+    initializeCompressedToken,
+  );
 
-  // const compressSimulation =
-  //   await connection.simulateTransaction(compressTransaction);
+  const compressSimulation =
+    await connection.simulateTransaction(compressTransaction);
 
-  // console.log("compressSimulation", compressSimulation);
+  console.log("compressSimulation", compressSimulation);
 
-  // const compressTransactionSignature = await sendTransaction(
-  //   compressTransaction,
-  //   connection,
-  // );
+  const compressTransactionSignature = await sendTransaction(
+    compressTransaction,
+    connection,
+  );
 
   return {
     mint: mint.publicKey,
     transactions: {
       createMintTransactionSignature,
       mintToTransactionSignature,
+      compressTransactionSignature,
     },
     decimals,
     ata: associatedToken,
