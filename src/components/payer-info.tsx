@@ -6,21 +6,20 @@ import { useDisclosure } from "@heroui/modal";
 import { Tooltip } from "@heroui/tooltip";
 import { useState } from "react";
 
-import { PayerModal } from "./payer-modal";
 import { CopyIcon, SettingsIcon, DoubleCheckIcon } from "./icons";
+import { WalletModal } from "./wallet-modal";
 
-import { usePayerContext } from "@/contexts/payer-context";
 import { trimNumber } from "@/utils/numbers";
+import { useWalletContext } from "@/contexts/wallet-context";
 
 export function PayerInfo() {
-  const { payer, balance } = usePayerContext();
+  const { state, balance } = useWalletContext();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [isCopied, setIsCopied] = useState(false);
 
-  const shortAddress = `${payer.publicKey.toBase58().slice(0, 4)}...${payer.publicKey.toBase58().slice(-4)}`;
-
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(payer.publicKey.toBase58());
+    if (!state) return;
+    await navigator.clipboard.writeText(state.publicKey.toBase58());
     setIsCopied(true);
 
     setTimeout(() => {
@@ -28,7 +27,9 @@ export function PayerInfo() {
     }, 2000);
   };
 
-  const isLowBalance = balance.readable < 0.05;
+  const isLowBalance = balance?.readable && balance.readable < 0.05;
+
+  if (!state) return null;
 
   return (
     <>
@@ -36,7 +37,7 @@ export function PayerInfo() {
         <div className="flex flex-col sm:flex-row justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="font-medium text-sm">Payer:</span>
-            <span className="font-mono text-sm">{shortAddress}</span>
+            <span className="font-mono text-sm">{state?.shortAddress}</span>
             <Button isIconOnly size="sm" variant="light" onPress={handleCopy}>
               {isCopied ? (
                 <DoubleCheckIcon size={16} />
@@ -52,7 +53,7 @@ export function PayerInfo() {
               <span
                 className={`font-mono text-sm ${isLowBalance ? "text-red-500" : "text-green-600"}`}
               >
-                {trimNumber(balance.readable)} SOL
+                {trimNumber(balance?.readable || 0)} SOL
               </span>
 
               <Tooltip content="Payer settings">
@@ -71,7 +72,8 @@ export function PayerInfo() {
         </div>
       </Card>
 
-      <PayerModal isOpen={isOpen} onClose={onClose} />
+      <WalletModal isOpen={isOpen} onClose={onClose} />
+      {/* <PayerModal isOpen={isOpen} onClose={onClose} /> */}
     </>
   );
 }

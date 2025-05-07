@@ -2,20 +2,12 @@
 
 import { Form } from "@heroui/form";
 import { Button } from "@heroui/button";
-import { Input } from "@heroui/input";
 import { PublicKey } from "@solana/web3.js";
 import { useCallback, useState } from "react";
 import { Card, CardBody, CardFooter } from "@heroui/card";
-import { addToast } from "@heroui/toast";
 import { Account } from "@solana/spl-token";
 import { Select, SelectItem } from "@heroui/react";
 
-import { CopyIcon, CircleCheckIcon, ForbiddenCircleIcon } from "../icons";
-
-import {
-  compressedMintSplToken2022,
-  regularMintSplToken2022,
-} from "@/services/spl-token-2022";
 import { useWalletContext } from "@/contexts/wallet-context";
 
 interface MintData {
@@ -42,8 +34,9 @@ export default function AirdropForm() {
 
   const handleMint = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {},
-    []
+    [],
   );
+
   console.log("userTokens", userTokens);
   const addMetadataPair = () => {
     setAdditionalMetadataPairs([...additionalMetadataPairs, ["", ""]]);

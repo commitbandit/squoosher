@@ -1,5 +1,6 @@
 "use client";
-import { Card, CardBody, Divider } from "@heroui/react";
+import { Card, CardBody } from "@heroui/react";
+
 import AirdropForm from "@/components/minter/create-airdrop";
 
 export default function AirdropCreator() {

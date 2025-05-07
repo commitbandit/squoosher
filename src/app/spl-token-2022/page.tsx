@@ -8,6 +8,7 @@ import Link from "next/link";
 
 import MintToken2022 from "@/components/minter/mint-spl-token-2022";
 import CostCalculator from "@/components/CostCalculator";
+import { PayerInfo } from "@/components/payer-info";
 
 export default function Token2022ProgramPage() {
   const [selected, setSelected] = useState("without-compression");
@@ -87,7 +88,7 @@ export default function Token2022ProgramPage() {
               <h3 className="text-xl font-medium mb-4 text-center">
                 Create Your Token-2022
               </h3>
-
+              <PayerInfo />
               <Tabs
                 aria-label="Token compression options"
                 className="mt-4"

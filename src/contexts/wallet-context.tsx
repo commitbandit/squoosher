@@ -11,7 +11,6 @@ import {
 } from "react";
 import {
   AccountInfo,
-  Connection,
   Keypair,
   LAMPORTS_PER_SOL,
   ParsedAccountData,
@@ -19,18 +18,17 @@ import {
 } from "@solana/web3.js";
 import bs58 from "bs58";
 import { Metaplex } from "@metaplex-foundation/js";
-import { useSolanaWallet } from "@/hooks/use-solana-wallet";
-import { getSolanaNativeBalance } from "@/services/balance-service";
-import { getAirdropSol } from "@/services/airdrop-sol";
-import { generateWalletState } from "@/utils/wallet";
-
 import {
   TOKEN_PROGRAM_ID,
   TOKEN_2022_PROGRAM_ID,
   getTokenMetadata,
 } from "@solana/spl-token";
-
 import { useConnection } from "@solana/wallet-adapter-react";
+
+import { useSolanaWallet } from "@/hooks/use-solana-wallet";
+import { getSolanaNativeBalance } from "@/services/balance-service";
+import { getAirdropSol } from "@/services/airdrop-sol";
+import { generateWalletState } from "@/utils/wallet";
 
 type Balance = {
   readable: number;
@@ -94,11 +92,12 @@ const parseWalletTokens = (
     pubkey: PublicKey;
     account: AccountInfo<ParsedAccountData>;
     programId: PublicKey;
-  }[]
+  }[],
 ): WalletToken[] => {
   return accounts
     .map(({ pubkey, account, programId }) => {
       const info = account.data.parsed?.info;
+
       if (!info || info.tokenAmount.uiAmount === 0) return null;
 
       return {
@@ -152,8 +151,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       ];
 
       const parsedTokens = parseWalletTokens(allAccounts);
+
       if (!parsedTokens.length) {
         setUserTokens([]);
+
         return;
       }
 
@@ -165,6 +166,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                 const metadata = await metaplex.nfts().findByMint({
                   mintAddress: new PublicKey(token.mint),
                 });
+
                 return {
                   ...token,
                   symbol: metadata.symbol,
@@ -173,8 +175,9 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
               } else {
                 const metadata = await getTokenMetadata(
                   connection,
-                  new PublicKey(token.mint)
+                  new PublicKey(token.mint),
                 );
+
                 return {
                   ...token,
                   symbol: metadata?.symbol,
@@ -184,7 +187,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
             } catch (e) {
               return { ...token, symbol: "UNKNOWN", name: "UNKNOWN" };
             }
-          })
+          }),
         );
 
         setUserTokens(metadataList);
@@ -194,7 +197,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     } catch (e) {
       console.error("Error fetching tokens:", e);
     }
-  }, [walletPublicKey]);
+  }, [connection, walletPublicKey]);
 
   const fetchBalance = useCallback(
     async (publicKeyOverride?: PublicKey): Promise<Balance> => {
@@ -225,7 +228,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         return initialBalance;
       }
     },
-    [state?.publicKey]
+    [state?.publicKey],
   );
 
   const createNewWallet = useCallback(() => {
@@ -263,7 +266,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         const importedKeypair = Keypair.fromSecretKey(secretKey);
 
         setState(
-          generateWalletState(importedKeypair.publicKey, importedKeypair)
+          generateWalletState(importedKeypair.publicKey, importedKeypair),
         );
         setAuthType("import");
 
@@ -276,7 +279,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
     },
-    [fetchBalance]
+    [fetchBalance],
   );
 
   const openModalAdapter = useCallback(async () => {
@@ -331,7 +334,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       fetchBalance();
       fetchTokens();
     }
-  }, [fetchBalance, state?.publicKey]);
+  }, [fetchBalance, fetchTokens, state?.publicKey]);
 
   const value = useMemo(
     () => ({
@@ -359,7 +362,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       fetchBalance,
       requestAirdrop,
       userTokens,
-    ]
+    ],
   );
 
   return (
