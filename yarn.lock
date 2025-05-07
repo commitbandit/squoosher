@@ -1225,7 +1225,7 @@
     "@heroui/shared-utils" "2.1.9"
     "@heroui/use-data-scroll-overflow" "2.2.10"
 
-"@heroui/select@2.4.19", "@heroui/select@^2.4.19":
+"@heroui/select@2.4.19":
   version "2.4.19"
   resolved "https://registry.yarnpkg.com/@heroui/select/-/select-2.4.19.tgz#b78f5bafd79aa4541f784476f6059a74c1c5806a"
   integrity sha512-lEeDyA9QvcQSblHbrqmHhY1V1LJjMmVa6gQ5hxHRfaFcxhQFmp+ORinSsuRVojITRoQ9bz/hTNX+tnrSqyHr/w==
@@ -1342,7 +1342,7 @@
     "@react-types/shared" "3.29.0"
     clsx "^1.2.1"
 
-"@heroui/system@2.4.15", "@heroui/system@^2.4.15":
+"@heroui/system@2.4.15":
   version "2.4.15"
   resolved "https://registry.yarnpkg.com/@heroui/system/-/system-2.4.15.tgz#4c1f2348d789485c74700baf53b9ccefa8e0cdbd"
   integrity sha512-+QUHscs2RTk5yOFEQXNlQa478P7PTD02ZGP/RTNCviR4E9ZTUifdjfsKA7D4L79S7L8Mkvbz5E2Ruz2ZF0R/IA==
@@ -1397,7 +1397,7 @@
     "@react-types/tabs" "3.3.14"
     scroll-into-view-if-needed "3.0.10"
 
-"@heroui/theme@2.4.15", "@heroui/theme@^2.4.15":
+"@heroui/theme@2.4.15":
   version "2.4.15"
   resolved "https://registry.yarnpkg.com/@heroui/theme/-/theme-2.4.15.tgz#bb1614b414a87812552c051b90452b195898a4be"
   integrity sha512-cP1N9Rqj5wzsKLpEzNdJQRjX2g9AuCZbRNaIuIGnztqmmGtP3Yykt1RzeQ4ukCdSDjk/PmV8XneTu8OC8Cs8HA==

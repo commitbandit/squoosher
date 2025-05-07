@@ -10,9 +10,6 @@
   },
   "dependencies": {
     "@heroui/react": "^2.7.8",
-    "@heroui/select": "^2.4.19",
-    "@heroui/system": "^2.4.15",
-    "@heroui/theme": "^2.4.15",
     "@lightprotocol/compressed-token": "^0.20.9",
     "@lightprotocol/stateless.js": "^0.20.9",
     "@lightprotocol/zk-compression-cli": "^0.23.0",
