@@ -1,5 +1,6 @@
 import { Metadata, Viewport } from "next";
 import clsx from "clsx";
+import { Analytics } from "@vercel/analytics/react";
 
 import { Providers } from "./providers";
 
@@ -7,6 +8,7 @@ import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { siteConfig } from "@/config/site";
 import { fontSora } from "@/config/fonts";
+
 import "@/globals.css";
 
 export const metadata: Metadata = {
@@ -55,6 +57,7 @@ export default function RootLayout({
             </div>
           </div>
         </Providers>
+        <Analytics />
       </body>
     </html>
   );
