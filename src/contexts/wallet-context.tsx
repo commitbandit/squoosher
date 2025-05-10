@@ -185,9 +185,14 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       if (savedKeypair) {
         setState(generateWalletState(savedKeypair.publicKey, savedKeypair));
         setAuthType(savedAuthType);
+
+        return;
+      }
+      if (walletPublicKey) {
+        setState(generateWalletState(walletPublicKey));
       }
     }
-  }, [state]);
+  }, [state, walletPublicKey]);
 
   const fetchTokens = useCallback(async () => {
     if (!walletPublicKey) return;
