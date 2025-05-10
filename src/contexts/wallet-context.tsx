@@ -30,6 +30,62 @@ import { getSolanaNativeBalance } from "@/services/balance-service";
 import { getAirdropSol } from "@/services/airdrop-sol";
 import { generateWalletState } from "@/utils/wallet";
 
+// Local storage keys
+const LS_WALLET_KEY = "squoosher-wallet";
+const LS_AUTH_TYPE_KEY = "squoosher-auth-type";
+
+// Helper functions for localStorage
+const saveWalletToLocalStorage = (keypair: Keypair) => {
+  if (typeof window !== "undefined") {
+    const secretKeyString = bs58.encode(keypair.secretKey);
+
+    localStorage.setItem(LS_WALLET_KEY, secretKeyString);
+  }
+};
+
+const saveAuthTypeToLocalStorage = (authType: AuthType) => {
+  if (typeof window !== "undefined" && authType !== null) {
+    localStorage.setItem(LS_AUTH_TYPE_KEY, authType);
+  }
+};
+
+const clearWalletFromLocalStorage = () => {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(LS_WALLET_KEY);
+    localStorage.removeItem(LS_AUTH_TYPE_KEY);
+  }
+};
+
+const getWalletFromLocalStorage = (): Keypair | null => {
+  if (typeof window !== "undefined") {
+    const secretKeyString = localStorage.getItem(LS_WALLET_KEY);
+
+    if (secretKeyString) {
+      try {
+        const secretKey = bs58.decode(secretKeyString);
+
+        return Keypair.fromSecretKey(secretKey);
+      } catch (error) {
+        console.error("Error loading wallet from localStorage:", error);
+
+        return null;
+      }
+    }
+  }
+
+  return null;
+};
+
+const getAuthTypeFromLocalStorage = (): AuthType => {
+  if (typeof window !== "undefined") {
+    const authType = localStorage.getItem(LS_AUTH_TYPE_KEY) as AuthType;
+
+    return authType || null;
+  }
+
+  return null;
+};
+
 type Balance = {
   readable: number;
   big: bigint;
@@ -120,11 +176,18 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const { publicKey: walletPublicKey, signIn, signOut } = useSolanaWallet();
   const { connection } = useConnection();
 
+  // Load wallet from localStorage on mount
   useEffect(() => {
-    if (walletPublicKey && !state) {
-      setState(generateWalletState(walletPublicKey));
+    if (!state) {
+      const savedKeypair = getWalletFromLocalStorage();
+      const savedAuthType = getAuthTypeFromLocalStorage();
+
+      if (savedKeypair) {
+        setState(generateWalletState(savedKeypair.publicKey, savedKeypair));
+        setAuthType(savedAuthType);
+      }
     }
-  }, [walletPublicKey, state]);
+  }, [state]);
 
   const fetchTokens = useCallback(async () => {
     if (!walletPublicKey) return;
@@ -240,6 +303,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     setAuthType("create");
     setBalance(initialBalance);
     fetchBalance(newPayer.publicKey);
+
+    // Save to localStorage
+    saveWalletToLocalStorage(newPayer);
+    saveAuthTypeToLocalStorage("create");
   }, [fetchBalance]);
 
   const importWalletFromPrivateKey = useCallback(
@@ -276,6 +343,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
         fetchBalance(importedKeypair.publicKey);
 
+        // Save to localStorage
+        saveWalletToLocalStorage(importedKeypair);
+        saveAuthTypeToLocalStorage("import");
+
         return importedKeypair;
       } catch (error) {
         console.error("Error importing private key:", error);
@@ -306,6 +377,9 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       setAuthType(null);
       setState(null);
       setBalance(null);
+
+      // Clear localStorage
+      clearWalletFromLocalStorage();
     } catch (error) {
       console.error("Error disconnecting wallet:", error);
     }
