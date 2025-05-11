@@ -4,7 +4,6 @@ import { Form } from "@heroui/form";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
 import { useCallback, useState } from "react";
-import { Card, CardBody, CardFooter } from "@heroui/card";
 import { addToast } from "@heroui/toast";
 import { useWallet } from "@solana/wallet-adapter-react";
 
@@ -201,56 +200,163 @@ export default function MintSplToken2022({
   return (
     <div className="w-full">
       <Form onSubmit={handleMint}>
-        <Card className="border-none shadow-none w-full">
-          <CardBody className="flex flex-col gap-4">
-            <Input
-              isRequired
-              label="Token Name"
-              labelPlacement="outside"
-              name="name"
-              placeholder="My Token"
-              type="text"
-              validate={(value) => {
-                if (!value.trim()) {
-                  return "Please enter a token name";
+        <div className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="flex flex-col gap-4">
+              <Input
+                isRequired
+                classNames={{
+                  base: "mb-2",
+                  label: "text-default-700 font-semibold",
+                  inputWrapper:
+                    "shadow-sm bg-white border-2 border-indigo-100 hover:border-indigo-200 focus-within:!border-indigo-400",
+                }}
+                description="The name of your token"
+                label="Token Name"
+                labelPlacement="outside"
+                name="name"
+                placeholder="My Token"
+                startContent={
+                  <div className="text-indigo-500 pointer-events-none flex items-center">
+                    <span className="text-sm">✏️</span>
+                  </div>
                 }
+                type="text"
+                validate={(value) => {
+                  if (!value.trim()) {
+                    return "Please enter a token name";
+                  }
 
-                return null;
-              }}
-            />
-            <Input
-              isRequired
-              label="Token Symbol"
-              labelPlacement="outside"
-              name="symbol"
-              placeholder="TKN"
-              type="text"
-              validate={(value) => {
-                if (!value.trim()) {
-                  return "Please enter a token symbol";
+                  return null;
+                }}
+              />
+              <Input
+                isRequired
+                classNames={{
+                  base: "mb-2",
+                  label: "text-default-700 font-semibold",
+                  inputWrapper:
+                    "shadow-sm bg-white border-2 border-indigo-100 hover:border-indigo-200 focus-within:!border-indigo-400",
+                }}
+                description="Number of tokens to mint"
+                label="Amount to Mint"
+                labelPlacement="outside"
+                min="1"
+                name="mintAmount"
+                placeholder="100"
+                startContent={
+                  <div className="text-indigo-500 pointer-events-none flex items-center">
+                    <span className="text-sm">🪙</span>
+                  </div>
                 }
+                step="1"
+                type="number"
+                validate={(value) => {
+                  const amount = parseInt(value);
 
-                return null;
-              }}
-            />
+                  if (isNaN(amount) || amount <= 0) {
+                    return "Please enter a valid positive amount";
+                  }
+
+                  return null;
+                }}
+                onWheel={(event) => event.currentTarget.blur()}
+              />
+            </div>
+            <div className="flex flex-col gap-4">
+              <Input
+                isRequired
+                classNames={{
+                  base: "mb-2",
+                  label: "text-default-700 font-semibold",
+                  inputWrapper:
+                    "shadow-sm bg-white border-2 border-indigo-100 hover:border-indigo-200 focus-within:!border-indigo-400",
+                }}
+                description="Short symbol for your token (e.g. BTC, ETH)"
+                label="Token Symbol"
+                labelPlacement="outside"
+                name="symbol"
+                placeholder="TKN"
+                startContent={
+                  <div className="text-indigo-500 pointer-events-none flex items-center">
+                    <span className="text-sm">🔤</span>
+                  </div>
+                }
+                type="text"
+                validate={(value) => {
+                  if (!value.trim()) {
+                    return "Please enter a token symbol";
+                  }
+
+                  return null;
+                }}
+              />
+
+              <Input
+                isRequired
+                classNames={{
+                  base: "mb-2",
+                  label: "text-default-700 font-semibold",
+                  inputWrapper:
+                    "shadow-sm bg-white border-2 border-indigo-100 hover:border-indigo-200 focus-within:!border-indigo-400",
+                }}
+                description="Decimal precision"
+                label="Decimals"
+                labelPlacement="outside"
+                min="0"
+                name="decimals"
+                placeholder="9"
+                startContent={
+                  <div className="text-indigo-500 pointer-events-none flex items-center">
+                    <span className="text-sm">🔢</span>
+                  </div>
+                }
+                step="1"
+                type="number"
+                validate={(value) => {
+                  const amount = parseInt(value);
+
+                  if (isNaN(amount) || amount < 0) {
+                    return "Please enter a valid number";
+                  }
+
+                  return null;
+                }}
+                onWheel={(event) => event.currentTarget.blur()}
+              />
+            </div>
             <Input
               isRequired
+              classNames={{
+                base: "mb-2",
+                label: "text-default-700 font-semibold",
+                inputWrapper:
+                  "shadow-sm bg-white border-2 border-indigo-100 hover:border-indigo-200 focus-within:!border-indigo-400",
+              }}
+              description="URL to token image or metadata"
               endContent={
                 uriInput &&
                 !imageError && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    alt="Token Preview"
-                    className="size-6 object-contain"
-                    src={uriInput}
-                    onError={handleImageError}
-                  />
+                  <div className="bg-indigo-100 rounded-full p-1 size-8 flex items-center justify-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      alt="Token Preview"
+                      className="size-6 object-contain rounded-full"
+                      src={uriInput}
+                      onError={handleImageError}
+                    />
+                  </div>
                 )
               }
               label="Token URI"
               labelPlacement="outside"
               name="uri"
               placeholder="https://example.com/image.png"
+              startContent={
+                <div className="text-indigo-500 pointer-events-none flex items-center">
+                  <span className="text-sm">🖼️</span>
+                </div>
+              }
               type="text"
               validate={(value) => {
                 if (!value.trim()) {
@@ -262,105 +368,84 @@ export default function MintSplToken2022({
               value={uriInput}
               onValueChange={(value) => handleUriChange(value)}
             />
-            <Input
-              isRequired
-              label="Decimals"
-              labelPlacement="outside"
-              min="0"
-              name="decimals"
-              placeholder="9"
-              step="1"
-              type="number"
-              validate={(value) => {
-                const amount = parseInt(value);
+          </div>
 
-                if (isNaN(amount) || amount < 0) {
-                  return "Please enter a valid non-negative amount";
-                }
-
-                return null;
-              }}
-              onWheel={(event) => event.currentTarget.blur()}
-            />
-            <Input
-              isRequired
-              label="Amount to Mint"
-              labelPlacement="outside"
-              min="1"
-              name="mintAmount"
-              placeholder="100"
-              step="1"
-              type="number"
-              validate={(value) => {
-                const amount = parseInt(value);
-
-                if (isNaN(amount) || amount <= 0) {
-                  return "Please enter a valid positive amount";
-                }
-
-                return null;
-              }}
-              onWheel={(event) => event.currentTarget.blur()}
-            />
-
-            <div className="space-y-2">
-              <label
-                className="block text-sm font-medium text-gray-700"
-                htmlFor="additionalMetadataLabel"
-              >
-                Additional Metadata (Key-Value pairs)
-              </label>
-              <div aria-labelledby="additionalMetadataLabel">
-                {additionalMetadataPairs.map((pair, index) => (
-                  <div key={index} className="flex gap-2 items-center mb-2">
-                    <Input
-                      aria-label={`Metadata key ${index + 1}`}
-                      className="flex-1"
-                      placeholder="Key"
-                      size="sm"
-                      value={pair[0]}
-                      onChange={(e) =>
-                        updateMetadataPair(index, e.target.value, pair[1])
-                      }
-                    />
-                    <Input
-                      aria-label={`Metadata value ${index + 1}`}
-                      className="flex-1"
-                      placeholder="Value"
-                      size="sm"
-                      value={pair[1]}
-                      onChange={(e) =>
-                        updateMetadataPair(index, pair[0], e.target.value)
-                      }
-                    />
-                    <Button
-                      isIconOnly
-                      aria-label={`Remove metadata pair ${index + 1}`}
-                      color="danger"
-                      disabled={additionalMetadataPairs.length <= 1}
-                      size="sm"
-                      variant="light"
-                      onPress={() => removeMetadataPair(index)}
-                    >
-                      ✕
-                    </Button>
-                  </div>
-                ))}
-              </div>
+          <div className="bg-indigo-50 p-6 rounded-xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-indigo-700 flex items-center gap-2">
+                <span className="text-sm bg-indigo-100 p-1 rounded-full">
+                  📋
+                </span>
+                Additional Metadata
+              </h3>
               <Button
-                aria-label="Add new metadata pair"
+                className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 font-semibold"
                 size="sm"
+                startContent="+"
                 variant="flat"
                 onPress={addMetadataPair}
               >
-                + Add Metadata Pair
+                Add Field
               </Button>
             </div>
-          </CardBody>
-          <CardFooter className="flex gap-4 justify-end">
+            <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
+              {additionalMetadataPairs.map((pair, index) => (
+                <div key={index} className="flex gap-3 items-center group">
+                  <Input
+                    aria-label={`Metadata key ${index + 1}`}
+                    className="flex-1"
+                    classNames={{
+                      inputWrapper:
+                        "bg-white border border-indigo-100 shadow-sm group-hover:border-indigo-200",
+                    }}
+                    placeholder="Key"
+                    size="sm"
+                    value={pair[0]}
+                    onChange={(e) =>
+                      updateMetadataPair(index, e.target.value, pair[1])
+                    }
+                  />
+                  <Input
+                    aria-label={`Metadata value ${index + 1}`}
+                    className="flex-1"
+                    classNames={{
+                      inputWrapper:
+                        "bg-white border border-indigo-100 shadow-sm group-hover:border-indigo-200",
+                    }}
+                    placeholder="Value"
+                    size="sm"
+                    value={pair[1]}
+                    onChange={(e) =>
+                      updateMetadataPair(index, pair[0], e.target.value)
+                    }
+                  />
+                  <Button
+                    isIconOnly
+                    aria-label={`Remove metadata pair ${index + 1}`}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity bg-white text-red-500 border border-red-200"
+                    disabled={additionalMetadataPairs.length <= 1}
+                    radius="full"
+                    size="sm"
+                    variant="bordered"
+                    onPress={() => removeMetadataPair(index)}
+                  >
+                    ✕
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-indigo-500 mt-3">
+              Add key-value pairs for additional token metadata (optional)
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-3">
             <Button
+              className="font-semibold transition-transform active:scale-95"
               color="default"
               isDisabled={isMinting}
+              radius="lg"
+              startContent={<span>↩️</span>}
               type="reset"
               variant="flat"
               onPress={clearForm}
@@ -368,85 +453,113 @@ export default function MintSplToken2022({
               Reset
             </Button>
             <Button
-              color="secondary"
+              className="font-semibold transition-transform active:scale-95 bg-gradient-to-r from-indigo-500 to-violet-500 text-white"
               isDisabled={
                 isMinting || !!mintData || (balance?.readable ?? 0) < 0.001
               }
               isLoading={isMinting}
+              radius="lg"
+              startContent={!isMinting && <span>✨</span>}
               type="submit"
-              variant="flat"
+              variant="shadow"
             >
-              {isMinting ? "Processing..." : "Mint"}
+              {isMinting ? "Processing..." : "Mint Tokens"}
             </Button>
-          </CardFooter>
-        </Card>
+          </div>
+        </div>
       </Form>
 
       {mintData && (
-        <div className="mt-8 space-y-4">
-          <MintViewComponent
-            compressionEnabled={compressionEnabled}
-            mintData={mintData}
-          />
-
-          <div>
-            <p className="text-sm text-gray-500 font-medium">Token Details</p>
-            <div className="grid grid-cols-2 gap-2 mt-1">
-              <div className="bg-gray-50 p-2 rounded">
-                <p className="text-xs font-medium">Name</p>
-                <p className="text-sm truncate">{formValues.name}</p>
-              </div>
-              <div className="bg-gray-50 p-2 rounded">
-                <p className="text-xs font-medium">Symbol</p>
-                <p className="text-sm">{formValues.symbol}</p>
-              </div>
+        <div className="mt-8 space-y-6 animate-fadeIn">
+          <div className="p-0.5 bg-gradient-to-r from-indigo-400 to-violet-400 rounded-xl">
+            <div className="bg-white p-5 rounded-lg">
+              <MintViewComponent
+                compressionEnabled={compressionEnabled}
+                mintData={mintData}
+              />
             </div>
           </div>
-          {uriInput && (
-            <div>
-              <p className="text-sm text-gray-500 font-medium">Token URI</p>
-              <div className="mt-1 flex items-start gap-2">
-                <div className="flex-1 break-all text-sm font-mono">
-                  {uriInput}
+
+          <div className="p-0.5 bg-gradient-to-r from-indigo-400 to-violet-400 rounded-xl">
+            <div className="bg-white p-5 rounded-lg space-y-4">
+              <h3 className="text-lg font-bold text-indigo-700 flex items-center gap-2">
+                <span className="text-sm bg-indigo-100 p-1 rounded-full">
+                  📄
+                </span>
+                Token Details
+              </h3>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-indigo-50 p-3 rounded-lg">
+                  <p className="text-xs font-semibold text-indigo-600 mb-1">
+                    Name
+                  </p>
+                  <p className="text-sm truncate font-medium">
+                    {formValues.name}
+                  </p>
                 </div>
-                {!imageError && (
-                  <div className="flex-shrink-0">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      alt="Token Preview"
-                      className="size-12 object-contain rounded"
-                      src={uriInput}
-                      onError={handleImageError}
-                    />
+                <div className="bg-indigo-50 p-3 rounded-lg">
+                  <p className="text-xs font-semibold text-indigo-600 mb-1">
+                    Symbol
+                  </p>
+                  <p className="text-sm font-medium">{formValues.symbol}</p>
+                </div>
+              </div>
+
+              {uriInput && (
+                <div>
+                  <p className="text-xs font-semibold text-indigo-600 mb-2">
+                    Token URI
+                  </p>
+                  <div className="flex items-start gap-3 bg-indigo-50 p-3 rounded-lg">
+                    {!imageError && (
+                      <div className="flex-shrink-0 bg-white p-1 rounded-lg border border-indigo-100">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          alt="Token Preview"
+                          className="size-12 object-contain rounded"
+                          src={uriInput}
+                          onError={handleImageError}
+                        />
+                      </div>
+                    )}
+                    <div className="flex-1 break-all text-sm font-mono text-indigo-700 overflow-x-auto">
+                      {uriInput}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {additionalMetadataPairs.length > 0 &&
+                additionalMetadataPairs[0][0] !== "" && (
+                  <div>
+                    <p className="text-xs font-semibold text-indigo-600 mb-2">
+                      Additional Metadata
+                    </p>
+                    <div className="bg-indigo-50 p-3 rounded-lg">
+                      <div className="space-y-2">
+                        {additionalMetadataPairs
+                          .filter(
+                            ([key, value]) =>
+                              key.trim() !== "" && value.trim() !== "",
+                          )
+                          .map(([key, value], index) => (
+                            <div
+                              key={index}
+                              className="grid grid-cols-2 gap-3 text-sm border-b border-indigo-100 pb-2 last:border-0 last:pb-0"
+                            >
+                              <div className="font-medium text-indigo-700">
+                                {key}
+                              </div>
+                              <div className="text-gray-700">{value}</div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
                   </div>
                 )}
-              </div>
             </div>
-          )}
-          {additionalMetadataPairs.length > 0 &&
-            additionalMetadataPairs[0][0] !== "" && (
-              <div>
-                <p className="text-sm text-gray-500 font-medium">
-                  Additional Metadata
-                </p>
-                <div className="mt-1 space-y-1">
-                  {additionalMetadataPairs
-                    .filter(
-                      ([key, value]) =>
-                        key.trim() !== "" && value.trim() !== "",
-                    )
-                    .map(([key, value], index) => (
-                      <div
-                        key={index}
-                        className="grid grid-cols-2 gap-2 text-sm"
-                      >
-                        <div className="font-medium">{key}</div>
-                        <div>{value}</div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )}
+          </div>
         </div>
       )}
     </div>

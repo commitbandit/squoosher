@@ -9,32 +9,17 @@ import {
   useCallback,
   useEffect,
 } from "react";
-import {
-  AccountInfo,
-  Keypair,
-  LAMPORTS_PER_SOL,
-  ParsedAccountData,
-  PublicKey,
-} from "@solana/web3.js";
+import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import bs58 from "bs58";
-import { Metaplex } from "@metaplex-foundation/js";
-import {
-  TOKEN_PROGRAM_ID,
-  TOKEN_2022_PROGRAM_ID,
-  getTokenMetadata,
-} from "@solana/spl-token";
-import { useConnection } from "@solana/wallet-adapter-react";
 
 import { useSolanaWallet } from "@/hooks/use-solana-wallet";
 import { getSolanaNativeBalance } from "@/services/balance-service";
 import { getAirdropSol } from "@/services/airdrop-sol";
 import { generateWalletState } from "@/utils/wallet";
 
-// Local storage keys
 const LS_WALLET_KEY = "squoosher-wallet";
 const LS_AUTH_TYPE_KEY = "squoosher-auth-type";
 
-// Helper functions for localStorage
 const saveWalletToLocalStorage = (keypair: Keypair) => {
   if (typeof window !== "undefined") {
     const secretKeyString = bs58.encode(keypair.secretKey);
@@ -105,7 +90,6 @@ export type WalletContextType = {
   state: ConnectedWallet | null;
   balance: Balance | null;
   isConnecting: boolean;
-  userTokens: WalletToken[];
 
   openModalAdapter: () => Promise<void>;
   disconnectWallet: () => Promise<void>;
@@ -133,50 +117,13 @@ export const useWalletContext = () => {
   return context;
 };
 
-interface WalletToken {
-  mint: string;
-  amount: string;
-  decimals: number;
-  programId: string;
-  accountAddress: string;
-  name?: string;
-  symbol?: string;
-}
-
-const parseWalletTokens = (
-  accounts: {
-    pubkey: PublicKey;
-    account: AccountInfo<ParsedAccountData>;
-    programId: PublicKey;
-  }[],
-): WalletToken[] => {
-  return accounts
-    .map(({ pubkey, account, programId }) => {
-      const info = account.data.parsed?.info;
-
-      if (!info || info.tokenAmount.uiAmount === 0) return null;
-
-      return {
-        mint: info.mint,
-        amount: info.tokenAmount.uiAmountString,
-        decimals: info.tokenAmount.decimals,
-        programId: programId.toBase58(),
-        accountAddress: pubkey.toBase58(),
-      };
-    })
-    .filter((token): token is WalletToken => token !== null);
-};
-
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const [authType, setAuthType] = useState<AuthType>(null);
   const [balance, setBalance] = useState<Balance | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [state, setState] = useState<ConnectedWallet | null>(null);
-  const [userTokens, setUserTokens] = useState<WalletToken[]>([]);
   const { publicKey: walletPublicKey, signIn, signOut } = useSolanaWallet();
-  const { connection } = useConnection();
 
-  // Load wallet from localStorage on mount
   useEffect(() => {
     if (!state) {
       const savedKeypair = getWalletFromLocalStorage();
@@ -193,81 +140,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       }
     }
   }, [state, walletPublicKey]);
-
-  const fetchTokens = useCallback(async () => {
-    if (!walletPublicKey) return;
-
-    try {
-      const [standardTokens, token2022Tokens] = await Promise.all([
-        connection.getParsedTokenAccountsByOwner(walletPublicKey, {
-          programId: TOKEN_PROGRAM_ID,
-        }),
-        connection.getParsedTokenAccountsByOwner(walletPublicKey, {
-          programId: TOKEN_2022_PROGRAM_ID,
-        }),
-      ]);
-      const metaplex = new Metaplex(connection, { cluster: "devnet" });
-      const allAccounts = [
-        ...standardTokens.value.map((acc) => ({
-          ...acc,
-          programId: TOKEN_PROGRAM_ID,
-        })),
-        ...token2022Tokens.value.map((acc) => ({
-          ...acc,
-          programId: TOKEN_2022_PROGRAM_ID,
-        })),
-      ];
-
-      const parsedTokens = parseWalletTokens(allAccounts);
-
-      if (!parsedTokens.length) {
-        setUserTokens([]);
-
-        return;
-      }
-
-      if (metaplex) {
-        const metadataList = await Promise.all(
-          parsedTokens.map(async (token) => {
-            try {
-              if (token.programId === TOKEN_PROGRAM_ID.toBase58()) {
-                const metadata = await metaplex.nfts().findByMint({
-                  mintAddress: new PublicKey(token.mint),
-                });
-
-                return {
-                  ...token,
-                  symbol: metadata.symbol,
-                  name: metadata.name,
-                };
-              } else {
-                const metadata = await getTokenMetadata(
-                  connection,
-                  new PublicKey(token.mint),
-                );
-
-                return {
-                  ...token,
-                  symbol: metadata?.symbol,
-                  name: metadata?.name,
-                };
-              }
-            } catch (e) {
-              console.error("Error fetching token metadata:", e);
-
-              return { ...token, symbol: "UNKNOWN", name: "UNKNOWN" };
-            }
-          }),
-        );
-
-        setUserTokens(metadataList);
-      } else {
-        setUserTokens(parsedTokens);
-      }
-    } catch (e) {
-      console.error("Error fetching tokens:", e);
-    }
-  }, [connection, walletPublicKey]);
 
   const fetchBalance = useCallback(
     async (publicKeyOverride?: PublicKey): Promise<Balance> => {
@@ -415,9 +287,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (state?.publicKey) {
       fetchBalance();
-      fetchTokens();
     }
-  }, [fetchBalance, fetchTokens, state?.publicKey]);
+  }, [fetchBalance, state?.publicKey]);
 
   const value = useMemo(
     () => ({
@@ -431,7 +302,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       importWalletFromPrivateKey,
       fetchBalance,
       requestAirdrop,
-      userTokens,
     }),
     [
       authType,
@@ -444,7 +314,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       importWalletFromPrivateKey,
       fetchBalance,
       requestAirdrop,
-      userTokens,
     ],
   );
 

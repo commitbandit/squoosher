@@ -34,5 +34,11 @@ export const siteConfig = {
       shortDescription: "Create Airdrop with Compressed Tokens",
       longDescription: "Next-generation SPL Token program.",
     },
+    {
+      title: "Token Transfer",
+      href: "/transfer-token",
+      shortDescription: "Transfer a token to another wallet",
+      longDescription: "Transfer a token to another wallet",
+    },
   ],
 };

@@ -13,7 +13,7 @@ export default function AirdropCreator() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="md:col-span-1 order-2 md:order-1">
           <Card className="border-none shadow-md bg-gradient-to-b from-white to-gray-50">
             <CardBody className="space-y-4">

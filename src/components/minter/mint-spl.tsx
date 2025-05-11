@@ -4,7 +4,6 @@ import { Form } from "@heroui/form";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
 import { useCallback, useState } from "react";
-import { Card, CardBody, CardFooter } from "@heroui/card";
 import { addToast } from "@heroui/toast";
 import { useWallet } from "@solana/wallet-adapter-react";
 
@@ -129,53 +128,84 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
   return (
     <div className="w-full">
       <Form onSubmit={handleMint}>
-        <Card className="border-none shadow-none w-full">
-          <CardBody className="flex flex-col gap-4">
-            <Input
-              isRequired
-              label="Amount to Mint"
-              labelPlacement="outside"
-              min="0.001"
-              name="mintAmount"
-              placeholder="0.001"
-              step="0.000000001"
-              type="number"
-              validate={(value) => {
-                const amount = parseFloat(value);
-
-                if (isNaN(amount) || amount <= 0) {
-                  return "Please enter a valid positive amount";
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <div className="relative">
+              <Input
+                isRequired
+                classNames={{
+                  base: "mb-6",
+                  label: "text-default-700 font-semibold",
+                  inputWrapper:
+                    "shadow-sm bg-white border-2 border-blue-100 hover:border-blue-200 focus-within:!border-blue-400",
+                }}
+                description="Enter the amount of tokens you want to mint"
+                label="Amount to Mint"
+                labelPlacement="outside"
+                min="0.001"
+                name="mintAmount"
+                placeholder="0.001"
+                startContent={
+                  <div className="text-blue-500 pointer-events-none flex items-center">
+                    <span className="text-sm">🪙</span>
+                  </div>
                 }
+                step="0.000000001"
+                type="number"
+                validate={(value) => {
+                  const amount = parseFloat(value);
 
-                return null;
-              }}
-              onWheel={(event) => event.currentTarget.blur()}
-            />
-            <Input
-              isRequired
-              label="Decimals"
-              labelPlacement="outside"
-              min="0"
-              name="decimals"
-              placeholder="9"
-              step="1"
-              type="number"
-              validate={(value) => {
-                const amount = parseInt(value);
+                  if (isNaN(amount) || amount <= 0) {
+                    return "Please enter a valid positive amount";
+                  }
 
-                if (isNaN(amount) || amount <= 0) {
-                  return "Please enter a valid positive amount";
+                  return null;
+                }}
+                onWheel={(event) => event.currentTarget.blur()}
+              />
+
+              <Input
+                isRequired
+                classNames={{
+                  base: "mb-2",
+                  label: "text-default-700 font-semibold",
+                  inputWrapper:
+                    "shadow-sm bg-white border-2 border-blue-100 hover:border-blue-200 focus-within:!border-blue-400",
+                }}
+                description="Number of decimal places for token precision"
+                label="Decimals"
+                labelPlacement="outside"
+                min="0"
+                name="decimals"
+                placeholder="9"
+                startContent={
+                  <div className="text-blue-500 pointer-events-none flex items-center">
+                    <span className="text-sm">🔢</span>
+                  </div>
                 }
+                step="1"
+                type="number"
+                validate={(value) => {
+                  const amount = parseInt(value);
 
-                return null;
-              }}
-              onWheel={(event) => event.currentTarget.blur()}
-            />
-          </CardBody>
-          <CardFooter className="flex gap-4 justify-end">
+                  if (isNaN(amount) || amount <= 0) {
+                    return "Please enter a valid positive amount";
+                  }
+
+                  return null;
+                }}
+                onWheel={(event) => event.currentTarget.blur()}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3">
             <Button
+              className="font-semibold transition-transform active:scale-95"
               color="default"
               isDisabled={isMinting}
+              radius="lg"
+              startContent={<span>↩️</span>}
               type="reset"
               variant="flat"
               onPress={clearForm}
@@ -183,25 +213,34 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
               Reset
             </Button>
             <Button
-              color="secondary"
+              className="font-semibold transition-transform active:scale-95"
+              color="primary"
               isDisabled={
                 isMinting || !!mintData || (balance?.readable ?? 0) < 0.001
               }
               isLoading={isMinting}
+              radius="lg"
+              startContent={!isMinting && <span>✨</span>}
               type="submit"
-              variant="flat"
+              variant="shadow"
             >
-              {isMinting ? "Processing..." : "Mint"}
+              {isMinting ? "Processing..." : "Mint Tokens"}
             </Button>
-          </CardFooter>
-        </Card>
+          </div>
+        </div>
       </Form>
 
       {mintData && (
-        <MintViewComponent
-          compressionEnabled={compressionEnabled}
-          mintData={mintData}
-        />
+        <div className="mt-8 animate-fadeIn">
+          <div className="p-0.5 bg-gradient-to-r from-blue-400 to-purple-400 rounded-xl">
+            <div className="bg-white p-5 rounded-lg">
+              <MintViewComponent
+                compressionEnabled={compressionEnabled}
+                mintData={mintData}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

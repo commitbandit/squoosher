@@ -7,10 +7,12 @@ import { HeroUIProvider } from "@heroui/system";
 import { useRouter } from "next/navigation";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { ToastProvider } from "@heroui/react";
+import { QueryClientProvider } from "@tanstack/react-query";
 
 import { SidebarProvider } from "@/contexts/sidebar-context";
 import { SolanaWalletProvider } from "@/providers/solana-wallet-provider";
 import { WalletProvider } from "@/contexts/wallet-context";
+import queryClient from "@/config/queryClient";
 
 export interface ProvidersProps {
   children: React.ReactNode;
@@ -29,15 +31,17 @@ export function Providers({ children, themeProps }: ProvidersProps) {
   const router = useRouter();
 
   return (
-    <SolanaWalletProvider>
-      <WalletProvider>
-        <HeroUIProvider navigate={router.push}>
-          <NextThemesProvider {...themeProps}>
-            <ToastProvider />
-            <SidebarProvider>{children}</SidebarProvider>
-          </NextThemesProvider>
-        </HeroUIProvider>
-      </WalletProvider>
-    </SolanaWalletProvider>
+    <QueryClientProvider client={queryClient}>
+      <SolanaWalletProvider>
+        <WalletProvider>
+          <HeroUIProvider navigate={router.push}>
+            <NextThemesProvider {...themeProps}>
+              <ToastProvider />
+              <SidebarProvider>{children}</SidebarProvider>
+            </NextThemesProvider>
+          </HeroUIProvider>
+        </WalletProvider>
+      </SolanaWalletProvider>
+    </QueryClientProvider>
   );
 }

@@ -12,7 +12,11 @@ import { WalletModal } from "./wallet-modal";
 import { trimNumber } from "@/utils/numbers";
 import { useWalletContext } from "@/contexts/wallet-context";
 
-export function PayerInfo() {
+type PayerInfoProps = {
+  className?: string;
+};
+
+export function PayerInfo({ className }: PayerInfoProps) {
   const { state, balance } = useWalletContext();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [isCopied, setIsCopied] = useState(false);
@@ -33,7 +37,7 @@ export function PayerInfo() {
 
   return (
     <>
-      <Card className="p-3 mb-4 bg-gray-50">
+      <Card className={`p-3 mb-4 shadow-inner ${className}`}>
         <div className="flex flex-col sm:flex-row justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="font-medium text-sm">Payer:</span>
@@ -51,7 +55,7 @@ export function PayerInfo() {
             <div className="flex gap-2 items-center">
               <span className="font-medium text-sm">Balance:</span>
               <span
-                className={`font-mono text-sm ${isLowBalance ? "text-red-500" : "text-green-600"}`}
+                className={`font-mono text-sm ${isLowBalance ? "text-red-500" : ""}`}
               >
                 {trimNumber(balance?.readable || 0)} SOL
               </span>

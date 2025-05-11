@@ -9,6 +9,7 @@ import { Account } from "@solana/spl-token";
 import { Select, SelectItem } from "@heroui/react";
 
 import { useWalletContext } from "@/contexts/wallet-context";
+import { useTokens } from "@/hooks/useTokens";
 
 interface MintData {
   mint: PublicKey;
@@ -19,7 +20,11 @@ interface MintData {
 }
 
 export default function AirdropForm() {
-  const { balance, userTokens } = useWalletContext();
+  const { data: userTokens, isLoading: isLoadingUserTokens } = useTokens();
+
+  console.log("userTokens", userTokens);
+
+  const { balance } = useWalletContext();
   const [isMinting, setIsMinting] = useState(false);
   const [mintData, setMintData] = useState<MintData | null>(null);
   const [additionalMetadataPairs, setAdditionalMetadataPairs] = useState<
@@ -73,6 +78,31 @@ export default function AirdropForm() {
     setUriInput("");
     setImageError(null);
   };
+
+  if (isLoadingUserTokens) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center space-y-4">
+          <p className="text-gray-600 text-lg">Loading your tokens...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!userTokens) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="bg-white shadow-xl rounded-2xl p-6 text-center space-y-2 border border-gray-100">
+          <h2 className="text-xl font-semibold text-gray-800">
+            No Tokens Found
+          </h2>
+          <p className="text-gray-500">
+            You don&apos;t have any tokens yet. Try adding one!
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
