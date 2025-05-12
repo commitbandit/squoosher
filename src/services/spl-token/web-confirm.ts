@@ -63,9 +63,21 @@ export const webCompressedMintSplToken = async ({
     })),
   );
 
+  const createMintTransactionSimulation = await connection.simulateTransaction(
+    createMintTransaction,
+  );
+
+  console.log(
+    "createMintTransactionSimulation",
+    createMintTransactionSimulation,
+  );
+
   const createMintTransactionSignature = await sendTransaction(
     createMintTransaction,
     connection,
+    {
+      signers: [mint],
+    },
   );
 
   console.log("create mint success! txId: ", createMintTransaction);
@@ -80,9 +92,10 @@ export const webCompressedMintSplToken = async ({
     }),
   );
 
-  const sim = await connection.simulateTransaction(mintToTransaction);
+  const mintToTransactionSimulation =
+    await connection.simulateTransaction(mintToTransaction);
 
-  console.log("simulation", sim);
+  console.log("mintToTransactionSimulation", mintToTransactionSimulation);
 
   const mintToTransactionSignature = await sendTransaction(
     mintToTransaction,
