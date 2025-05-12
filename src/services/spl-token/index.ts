@@ -1,4 +1,4 @@
-import { createRpc } from "@lightprotocol/stateless.js";
+import { Rpc } from "@lightprotocol/stateless.js";
 import { createMint, mintTo } from "@lightprotocol/compressed-token";
 import {
   mintTo as mintToSpl,
@@ -7,32 +7,32 @@ import {
 } from "@solana/spl-token";
 import { Keypair } from "@solana/web3.js";
 
-import { DEVNET_RPC_URL } from "@/config";
 import { MintViewData } from "@/types";
 
 type MintData = {
   payer: Keypair;
   mintAmount: number;
   decimals: number;
+  rpcConnection: Rpc;
 };
 
 export const compressedMintSplToken = async ({
   payer,
   mintAmount,
   decimals,
+  rpcConnection,
 }: MintData): Promise<MintViewData> => {
-  const connection = createRpc(DEVNET_RPC_URL, DEVNET_RPC_URL, DEVNET_RPC_URL);
   // Create a compressed token mint
   const { mint, transactionSignature: createMintTransactionSignature } =
     await createMint(
-      connection,
+      rpcConnection,
       payer,
       payer.publicKey,
       decimals, // Number of decimals
     );
 
   const mintToTransactionSignature = await mintTo(
-    connection,
+    rpcConnection,
     payer,
     mint,
     payer.publicKey,
@@ -68,11 +68,10 @@ export const regularMintSplToken = async ({
   payer,
   mintAmount,
   decimals,
+  rpcConnection,
 }: MintData): Promise<MintViewData> => {
-  const connection = createRpc(DEVNET_RPC_URL, DEVNET_RPC_URL, DEVNET_RPC_URL);
-
   const mint = await createMintRegular(
-    connection,
+    rpcConnection,
     payer,
     payer.publicKey,
     payer.publicKey,
@@ -83,7 +82,7 @@ export const regularMintSplToken = async ({
 
   // Create Associated Token Account
   const ata = await getOrCreateAssociatedTokenAccount(
-    connection,
+    rpcConnection,
     payer,
     mint,
     payer.publicKey,
@@ -93,7 +92,7 @@ export const regularMintSplToken = async ({
 
   // Mint tokens to the payer's account
   const mintToTransactionSignature = await mintToSpl(
-    connection,
+    rpcConnection,
     payer,
     mint,
     ata.address,

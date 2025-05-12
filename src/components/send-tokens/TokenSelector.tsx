@@ -104,6 +104,7 @@ export default function TokenSelector({
         {selectedToken ? (
           <div className="flex items-center gap-3">
             {selectedToken.url && (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 alt={selectedToken.symbol || "Token Icon"}
                 className="size-10 object-cover rounded-full"
@@ -207,6 +208,7 @@ export default function TokenSelector({
                         >
                           <span className={`text-lg ${styles.text}`}>
                             {token.url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
                               <img
                                 alt={token.symbol || "Token Icon"}
                                 className="w-full h-full object-cover rounded-full"

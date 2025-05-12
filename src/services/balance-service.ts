@@ -1,21 +1,16 @@
 import { AccountLayout } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
-import { createRpc } from "@lightprotocol/stateless.js";
-
-import { DEVNET_RPC_URL } from "@/config";
+import { Rpc } from "@lightprotocol/stateless.js";
 
 export const getSolanaNativeBalance = async ({
   publicKey,
+  rpcConnection,
 }: {
   publicKey: PublicKey;
+  rpcConnection: Rpc;
 }): Promise<bigint | null> => {
   try {
-    const connection = createRpc(
-      DEVNET_RPC_URL,
-      DEVNET_RPC_URL,
-      DEVNET_RPC_URL,
-    );
-    const balance = await connection.getBalance(publicKey);
+    const balance = await rpcConnection.getBalance(publicKey);
 
     return BigInt(balance);
   } catch (err: unknown) {
@@ -28,18 +23,14 @@ export const getSolanaNativeBalance = async ({
 export const getSolanaSplBalance = async ({
   publicKey,
   tokenAddress,
+  rpcConnection,
 }: {
   publicKey: PublicKey;
   tokenAddress: PublicKey;
+  rpcConnection: Rpc;
 }): Promise<bigint | null> => {
   try {
-    const connection = createRpc(
-      DEVNET_RPC_URL,
-      DEVNET_RPC_URL,
-      DEVNET_RPC_URL,
-    );
-
-    const accounts = await connection.getTokenAccountsByOwner(publicKey, {
+    const accounts = await rpcConnection.getTokenAccountsByOwner(publicKey, {
       mint: tokenAddress,
     });
 

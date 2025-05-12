@@ -16,6 +16,7 @@ import { useSolanaWallet } from "@/hooks/use-solana-wallet";
 import { getSolanaNativeBalance } from "@/services/balance-service";
 import { getAirdropSol } from "@/services/airdrop-sol";
 import { generateWalletState } from "@/utils/wallet";
+import { useNetwork } from "@/contexts/network-context";
 
 const LS_WALLET_KEY = "squoosher-wallet";
 const LS_AUTH_TYPE_KEY = "squoosher-auth-type";
@@ -118,6 +119,7 @@ export const useWalletContext = () => {
 };
 
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
+  const { config } = useNetwork();
   const [authType, setAuthType] = useState<AuthType>(null);
   const [balance, setBalance] = useState<Balance | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -270,7 +272,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         throw new Error("No wallet connected");
       }
 
-      const signature = await getAirdropSol(publicKey);
+      const signature = await getAirdropSol(publicKey, config.rpcConnection);
 
       if (signature) {
         await fetchBalance(publicKey);
@@ -282,7 +284,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
       return null;
     }
-  }, [fetchBalance, state?.publicKey]);
+  }, [fetchBalance, state?.publicKey, config.rpcConnection]);
 
   useEffect(() => {
     if (state?.publicKey) {

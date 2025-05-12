@@ -55,6 +55,18 @@ export const useTokens = () => {
     queryFn: async () => {
       if (!publicKey) throw new Error("No public key found");
 
+      // const compressedTokenBalances =
+      //   await config.rpcConnection.getCompressedTokenBalancesByOwnerV2(
+      //     publicKey,
+      //   );
+
+      // console.log(
+      //   compressedTokenBalances.value.items.map((item) => ({
+      //     mint: item.mint.toBase58(),
+      //     balance: item.balance.div(new BN(10 ** 9)).toString(),
+      //   })),
+      // );
+
       const [standardTokens, token2022Tokens] = await Promise.all([
         connection.getParsedTokenAccountsByOwner(publicKey, {
           programId: TOKEN_PROGRAM_ID,

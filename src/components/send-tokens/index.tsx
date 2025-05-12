@@ -10,7 +10,7 @@ import TokenSelector from "./TokenSelector";
 
 import { WalletToken } from "@/hooks/useTokens";
 
-export default function AirdropForm() {
+export default function TransferForm() {
   const [selectedToken, setSelectedToken] = useState<WalletToken | undefined>(
     undefined,
   );
@@ -134,17 +134,17 @@ export default function AirdropForm() {
       </CardBody>
       <CardFooter className="px-6 py-4 bg-gray-50">
         <Button
+          isDisabled
           className="w-full font-semibold transition-transform active:scale-95 bg-gradient-to-r from-purple-600 to-blue-600 text-white cursor-not-allowed"
+          isLoading={isLoading}
           radius="lg"
           startContent={!isLoading && <span>✨</span>}
           type="submit"
           variant="shadow"
-          onClick={handleSubmit}
-          isDisabled
           // isDisabled={!selectedToken || !amount || !recipient || isLoading}
-          isLoading={isLoading}
         >
-          {isLoading ? "Processing..." : "Send Tokens"}
+          SOON
+          {/* {isLoading ? "Processing..." : "Send Tokens"} */}
         </Button>
       </CardFooter>
     </Card>

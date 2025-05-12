@@ -9,8 +9,10 @@ import { HandMoneyIcon } from "./icons";
 import { getSolanaNativeBalance } from "@/services/balance-service";
 import { trimNumber } from "@/utils/numbers";
 import { getAirdropSol } from "@/services/airdrop-sol";
+import { useNetwork } from "@/contexts/network-context";
 
 export const InputRecipient = () => {
+  const { config } = useNetwork();
   const [recipientAddress, setRecipientAddress] = useState<string>("");
   const [balance, setBalance] = useState<number>(0);
   const [isAirdropping, setIsAirdropping] = useState(false);
@@ -22,6 +24,7 @@ export const InputRecipient = () => {
 
       const balance = await getSolanaNativeBalance({
         publicKey: recipientPublicKey,
+        rpcConnection: config.rpcConnection,
       });
 
       if (!balance) throw new Error("Balance is null");
@@ -30,7 +33,7 @@ export const InputRecipient = () => {
     } catch (error) {
       console.error("Error fetching balance", { cause: error });
     }
-  }, [recipientAddress]);
+  }, [recipientAddress, config.rpcConnection]);
 
   const handleAirdrop = useCallback(async () => {
     setIsAirdropping(true);
@@ -38,7 +41,10 @@ export const InputRecipient = () => {
 
     try {
       const recipientPublicKey = new PublicKey(recipientAddress);
-      const signature = await getAirdropSol(recipientPublicKey);
+      const signature = await getAirdropSol(
+        recipientPublicKey,
+        config.rpcConnection,
+      );
 
       if (signature) {
         setAirdropSuccess(true);
@@ -51,7 +57,7 @@ export const InputRecipient = () => {
         setAirdropSuccess(false);
       }, 3000);
     }
-  }, [fetchBalance, recipientAddress]);
+  }, [fetchBalance, recipientAddress, config.rpcConnection]);
 
   return (
     <div className="flex flex-col gap-2">

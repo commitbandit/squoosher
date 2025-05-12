@@ -13,6 +13,7 @@ import { SidebarProvider } from "@/contexts/sidebar-context";
 import { SolanaWalletProvider } from "@/providers/solana-wallet-provider";
 import { WalletProvider } from "@/contexts/wallet-context";
 import queryClient from "@/config/queryClient";
+import { NetworkProvider } from "@/contexts/network-context";
 
 export interface ProvidersProps {
   children: React.ReactNode;
@@ -31,17 +32,19 @@ export function Providers({ children, themeProps }: ProvidersProps) {
   const router = useRouter();
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <SolanaWalletProvider>
-        <WalletProvider>
-          <HeroUIProvider navigate={router.push}>
-            <NextThemesProvider {...themeProps}>
-              <ToastProvider />
-              <SidebarProvider>{children}</SidebarProvider>
-            </NextThemesProvider>
-          </HeroUIProvider>
-        </WalletProvider>
-      </SolanaWalletProvider>
-    </QueryClientProvider>
+    <NetworkProvider>
+      <QueryClientProvider client={queryClient}>
+        <SolanaWalletProvider>
+          <WalletProvider>
+            <HeroUIProvider navigate={router.push}>
+              <NextThemesProvider {...themeProps}>
+                <ToastProvider />
+                <SidebarProvider>{children}</SidebarProvider>
+              </NextThemesProvider>
+            </HeroUIProvider>
+          </WalletProvider>
+        </SolanaWalletProvider>
+      </QueryClientProvider>
+    </NetworkProvider>
   );
 }

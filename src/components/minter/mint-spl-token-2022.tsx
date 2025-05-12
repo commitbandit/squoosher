@@ -21,6 +21,7 @@ import {
   webCompressedMintSplToken2022,
   webRegularMintSplToken2022,
 } from "@/services/spl-token-2022/web.confirm";
+import { useNetwork } from "@/contexts/network-context";
 
 interface MintSpl2022Props {
   compressionEnabled?: boolean;
@@ -30,6 +31,10 @@ export default function MintSplToken2022({
   compressionEnabled = false,
 }: MintSpl2022Props) {
   const { state, fetchBalance, balance } = useWalletContext();
+  const {
+    config: { rpcConnection },
+  } = useNetwork();
+
   const [isMinting, setIsMinting] = useState(false);
   const [mintData, setMintData] = useState<MintViewData | null>(null);
   const [additionalMetadataPairs, setAdditionalMetadataPairs] = useState<
@@ -88,6 +93,7 @@ export default function MintSplToken2022({
               payer: state.publicKey,
               sendTransaction,
               signTransaction,
+              rpcConnection,
             });
           } else {
             result = await compressedMintSplToken2022({
@@ -98,6 +104,7 @@ export default function MintSplToken2022({
               uri,
               additionalMetadata: filteredMetadata,
               payer: state.keypair,
+              rpcConnection,
             });
           }
         } else {
@@ -115,6 +122,7 @@ export default function MintSplToken2022({
               payer: state.publicKey,
               sendTransaction,
               signTransaction,
+              rpcConnection,
             });
           } else {
             result = await regularMintSplToken2022({
@@ -125,6 +133,7 @@ export default function MintSplToken2022({
               uri,
               additionalMetadata: filteredMetadata,
               payer: state.keypair,
+              rpcConnection,
             });
           }
         }
@@ -158,6 +167,7 @@ export default function MintSplToken2022({
       sendTransaction,
       signTransaction,
       state,
+      rpcConnection,
     ],
   );
 
