@@ -128,7 +128,7 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
   return (
     <div className="w-full">
       <Form onSubmit={handleMint}>
-        <div className="space-y-6">
+        <div className="space-y-6 w-full">
           <div className="space-y-4">
             <div className="relative">
               <Input

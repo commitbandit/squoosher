@@ -32,7 +32,6 @@ export function Sidebar() {
         } border-r bg-white`}
       >
         <div className="p-4">
-          <h2 className="text-xl font-bold mb-6">Documentation</h2>
           <nav className="space-y-1">
             {siteConfig.menuItems.map((item) => {
               const isActive = pathname === item.href;

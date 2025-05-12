@@ -103,6 +103,13 @@ export default function TokenSelector({
       >
         {selectedToken ? (
           <div className="flex items-center gap-3">
+            {selectedToken.url && (
+              <img
+                alt={selectedToken.symbol || "Token Icon"}
+                className="size-10 object-cover rounded-full"
+                src={selectedToken.url}
+              />
+            )}
             <div className="flex flex-col">
               <span className="font-semibold text-gray-900">
                 {selectedToken.symbol || "Unknown"}{" "}

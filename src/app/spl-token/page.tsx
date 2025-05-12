@@ -116,7 +116,7 @@ export default function TokenProgramPage() {
                 className="mt-4"
                 classNames={{
                   tabList:
-                    "gap-2 w-full relative rounded-xl p-1 bg-blue-100 text-primary",
+                    "gap-2 relative rounded-xl p-1 bg-blue-100 text-primary",
                   cursor: "shadow-md",
                   tab: "text-primary max-w-fit px-4 h-10 data-[selected=true]:text-blue-600 rounded-lg",
                   panel: "py-4",
@@ -134,9 +134,7 @@ export default function TokenProgramPage() {
                     </div>
                   }
                 >
-                  <div className="bg-white p-5 rounded-xl shadow-inner">
-                    <MintSpl compressionEnabled={false} />
-                  </div>
+                  <MintSpl compressionEnabled={false} />
                 </Tab>
                 <Tab
                   key="with-compression"
@@ -147,9 +145,7 @@ export default function TokenProgramPage() {
                     </div>
                   }
                 >
-                  <div className="bg-white p-5 rounded-xl shadow-inner">
-                    <MintSpl compressionEnabled={true} />
-                  </div>
+                  <MintSpl compressionEnabled={true} />
                 </Tab>
               </Tabs>
             </CardBody>

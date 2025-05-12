@@ -59,7 +59,7 @@ export default function AirdropForm() {
         </div>
       </CardHeader>
       <CardBody className="px-6 pb-4">
-        <Form className="space-y-6" onSubmit={handleSubmit}>
+        <Form className="space-y-6 grid grid-cols-1" onSubmit={handleSubmit}>
           <div>
             <label
               className="block text-sm font-semibold text-gray-700 mb-2"

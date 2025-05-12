@@ -200,9 +200,9 @@ export default function MintSplToken2022({
   return (
     <div className="w-full">
       <Form onSubmit={handleMint}>
-        <div className="space-y-8">
+        <div className="space-y-8 w-full">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 justify-between">
               <Input
                 isRequired
                 classNames={{
@@ -263,7 +263,7 @@ export default function MintSplToken2022({
                 onWheel={(event) => event.currentTarget.blur()}
               />
             </div>
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 justify-between">
               <Input
                 isRequired
                 classNames={{

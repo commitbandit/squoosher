@@ -120,7 +120,7 @@ export default function Token2022ProgramPage() {
                 aria-label="Token compression options"
                 className="mt-4"
                 classNames={{
-                  tabList: "gap-2 w-full relative rounded-xl p-1 bg-indigo-100",
+                  tabList: "gap-2 relative rounded-xl p-1 bg-indigo-100",
                   cursor: "shadow-md",
                   tab: "max-w-fit px-4 h-10 data-[selected=true]:text-indigo-600 rounded-lg",
                   panel: "py-4",
@@ -138,9 +138,7 @@ export default function Token2022ProgramPage() {
                     </div>
                   }
                 >
-                  <div className="bg-white p-5 rounded-xl shadow-inner">
-                    <MintToken2022 compressionEnabled={false} />
-                  </div>
+                  <MintToken2022 compressionEnabled={false} />
                 </Tab>
                 <Tab
                   key="with-compression"
@@ -151,9 +149,7 @@ export default function Token2022ProgramPage() {
                     </div>
                   }
                 >
-                  <div className="bg-white p-5 rounded-xl shadow-inner">
-                    <MintToken2022 compressionEnabled={true} />
-                  </div>
+                  <MintToken2022 compressionEnabled={true} />
                 </Tab>
               </Tabs>
 
