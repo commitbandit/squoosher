@@ -1,6 +1,6 @@
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useQuery } from "@tanstack/react-query";
-import { ParsedAccountData } from "@solana/web3.js";
+import { ParsedAccountData, PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
 
 import { TokenType, WalletToken } from "./use-spl-tokens";
@@ -18,24 +18,27 @@ interface TokenExtension {
   state?: TokenMetadataState;
 }
 
-export const useCompressedTokens = () => {
+export const useCompressedTokens = (
+  compressedBalances?: {
+    mint: PublicKey;
+    balance: BN;
+  }[],
+) => {
   const {
     config: { rpcConnection },
   } = useNetwork();
   const { publicKey } = useWallet();
 
   return useQuery<WalletToken[]>({
-    enabled: !!publicKey,
+    enabled: !!publicKey && compressedBalances && compressedBalances.length > 0,
     queryKey: ["compressed-tokens"],
     queryFn: async () => {
-      if (!publicKey) throw new Error("No public key found");
+      if (!publicKey || !compressedBalances)
+        throw new Error("No public key or compressed balances found");
 
       try {
-        const compressedTokensResponse =
-          await rpcConnection.getCompressedTokenBalancesByOwnerV2(publicKey);
-
         const compressedTokens = await Promise.all(
-          compressedTokensResponse.value.items.map(async (el) => {
+          compressedBalances.map(async (el) => {
             const accountInfo = await rpcConnection.getParsedAccountInfo(
               el.mint,
             );
