@@ -8,7 +8,7 @@ import { Form } from "@heroui/form";
 
 import TokenSelector from "./TokenSelector";
 
-import { WalletToken } from "@/hooks/useTokens";
+import { WalletToken } from "@/hooks/use-spl-tokens";
 
 export default function TransferForm() {
   const [selectedToken, setSelectedToken] = useState<WalletToken | undefined>(

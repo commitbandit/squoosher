@@ -154,6 +154,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
         const fetchedBalance = await getSolanaNativeBalance({
           publicKey: pubKey,
+          rpcConnection: config.rpcConnection,
         });
 
         if (!fetchedBalance) throw new Error("Balance is null");
@@ -172,7 +173,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         return initialBalance;
       }
     },
-    [state?.publicKey],
+    [state?.publicKey, config.rpcConnection],
   );
 
   const createNewWallet = useCallback(() => {
@@ -250,9 +251,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
   const disconnectWallet = useCallback(async () => {
     try {
-      if (authType === "connect") {
-        await signOut();
-      }
+      await signOut();
       setAuthType(null);
       setState(null);
       setBalance(null);
@@ -262,7 +261,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error("Error disconnecting wallet:", error);
     }
-  }, [signOut, authType]);
+  }, [signOut]);
 
   const requestAirdrop = useCallback(async () => {
     try {

@@ -8,20 +8,13 @@ import {
   ModalBody,
   ModalFooter,
 } from "@heroui/modal";
-import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { cn } from "@heroui/react";
 
 import { ChevronDownIcon } from "../icons";
 
-import { useTokens, WalletToken } from "@/hooks/useTokens";
+import { TokenType, useSplTokens, WalletToken } from "@/hooks/use-spl-tokens";
 import { truncateAddress } from "@/utils/string";
-
-export enum TokenType {
-  STANDARD = "Standard SPL Token",
-  STANDARD_COMPRESSED = "Standard SPL Token (Compressed)",
-  TOKEN_2022 = "Token 2022",
-  TOKEN_2022_COMPRESSED = "Token 2022 (Compressed)",
-}
+import { useCompressedTokens } from "@/hooks/use-compressed-tokens";
 
 interface TokenSelectorProps {
   onTokenSelect: (token: WalletToken) => void;
@@ -34,17 +27,14 @@ export default function TokenSelector({
 }: TokenSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const { data: tokens, isLoading } = useTokens();
+  const { data: splTokens, isLoading: isSplTokensLoading } = useSplTokens();
+  const { data: compressedTokens, isLoading: isCompressedTokensLoading } =
+    useCompressedTokens();
 
-  const getTokenType = (programId: string): TokenType => {
-    if (programId === TOKEN_PROGRAM_ID.toBase58()) {
-      return TokenType.STANDARD;
-    } else if (programId === TOKEN_2022_PROGRAM_ID.toBase58()) {
-      return TokenType.TOKEN_2022;
-    } else {
-      return TokenType.STANDARD;
-    }
-  };
+  const tokens = useMemo(() => {
+    return [...(splTokens || []), ...(compressedTokens || [])];
+  }, [splTokens, compressedTokens]);
+  const isLoading = isSplTokensLoading || isCompressedTokensLoading;
 
   const filteredTokens = useMemo(() => {
     if (!tokens) return [];
@@ -86,6 +76,12 @@ export default function TokenSelector({
           text: "text-green-700",
           icon: "🗜️",
         };
+      case TokenType.COMPRESSED:
+        return {
+          bg: "bg-green-100",
+          text: "text-green-700",
+          icon: "🗜️",
+        };
     }
   };
 
@@ -114,8 +110,13 @@ export default function TokenSelector({
             <div className="flex flex-col">
               <span className="font-semibold text-gray-900">
                 {selectedToken.symbol || "Unknown"}{" "}
-                <span className="text-gray-500 text-sm">
-                  ({getTokenType(selectedToken.programId)})
+                <span
+                  className={cn(
+                    "text-gray-500 text-xs",
+                    getTokenTypeStyles(selectedToken.type).text,
+                  )}
+                >
+                  {selectedToken.type}
                 </span>
               </span>
               <span className="text-sm text-gray-500">
@@ -188,8 +189,7 @@ export default function TokenSelector({
             ) : (
               <div className="space-y-2">
                 {filteredTokens.map((token) => {
-                  const tokenType = getTokenType(token.programId);
-                  const styles = getTokenTypeStyles(tokenType);
+                  const styles = getTokenTypeStyles(token.type);
 
                   return (
                     <Button
@@ -243,7 +243,7 @@ export default function TokenSelector({
                               <div
                                 className={`text-xs px-2 py-0.5 rounded-full inline-block ${styles.bg} ${styles.text}`}
                               >
-                                {tokenType}
+                                {token.type}
                               </div>
                             </div>
                           </div>
