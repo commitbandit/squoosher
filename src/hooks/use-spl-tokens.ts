@@ -3,14 +3,14 @@ import { useConnection } from "@solana/wallet-adapter-react";
 import { useQuery } from "@tanstack/react-query";
 
 import { useWalletContext } from "@/contexts/wallet-context";
-
+import { QUERY_KEYS } from "@/constants/query-keys";
 export const useSplTokens = () => {
   const { connection } = useConnection();
   const { state } = useWalletContext();
 
   return useQuery({
     enabled: !!state?.publicKey,
-    queryKey: ["spl-tokens"],
+    queryKey: [QUERY_KEYS.SPL_TOKENS],
     queryFn: async () => {
       if (!state?.publicKey) throw new Error("No public key found");
 

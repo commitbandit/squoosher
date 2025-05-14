@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { useNetwork } from "@/contexts/network-context";
 import { useWalletContext } from "@/contexts/wallet-context";
+import { QUERY_KEYS } from "@/constants/query-keys";
 
 export const useCompressedTokens = () => {
   const {
@@ -11,7 +12,7 @@ export const useCompressedTokens = () => {
 
   return useQuery({
     enabled: !!state?.publicKey,
-    queryKey: ["compressed-tokens"],
+    queryKey: [QUERY_KEYS.COMPRESSED_TOKENS],
     queryFn: async () => {
       if (!state?.publicKey) throw new Error("No public key found");
 
