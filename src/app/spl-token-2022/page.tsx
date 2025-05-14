@@ -7,7 +7,7 @@ import { Divider } from "@heroui/divider";
 import Link from "next/link";
 
 import MintToken2022 from "@/components/minter/mint-spl-token-2022";
-import CostCalculator from "@/components/CostCalculator";
+import CostCalculator from "@/components/cost-calculator";
 import { PayerInfo } from "@/components/payer-info";
 
 export default function Token2022ProgramPage() {

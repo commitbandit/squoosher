@@ -5828,6 +5828,13 @@
   dependencies:
     tslib "^2.4.0"
 
+"@types/bn.js@^5.1.6":
+  version "5.1.6"
+  resolved "https://registry.yarnpkg.com/@types/bn.js/-/bn.js-5.1.6.tgz#9ba818eec0c85e4d3c679518428afdf611d03203"
+  integrity sha512-Xh8vSwUeMKeYYrj3cX4lGQgFSF/N03r+tv4AiLl1SucqV+uTQpxRcnM8AkXKHwYP9ZPXOYXRr2KPXpVlIvqh9w==
+  dependencies:
+    "@types/node" "*"
+
 "@types/cli-progress@^3.11.5":
   version "3.11.6"
   resolved "https://registry.yarnpkg.com/@types/cli-progress/-/cli-progress-3.11.6.tgz#94b334ebe4190f710e51c1bf9b4fedb681fa9e45"

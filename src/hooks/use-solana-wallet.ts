@@ -9,10 +9,12 @@ import {
   getSolanaNativeBalance,
   getSolanaSplBalance,
 } from "@/services/balance-service";
+import { useNetwork } from "@/contexts/network-context";
 
 export const useSolanaWallet = () => {
   const { setVisible } = useWalletModal();
   const { publicKey, disconnect } = useWallet();
+  const { config } = useNetwork();
 
   const handleSignIn = useCallback(async () => {
     setVisible(true);
@@ -36,12 +38,16 @@ export const useSolanaWallet = () => {
         const balance = await getSolanaSplBalance({
           publicKey,
           tokenAddress: new PublicKey(tokenAddress),
+          rpcConnection: config.rpcConnection,
         });
 
         return balance ?? 0n;
       }
 
-      const balance = await getSolanaNativeBalance({ publicKey });
+      const balance = await getSolanaNativeBalance({
+        publicKey,
+        rpcConnection: config.rpcConnection,
+      });
 
       return balance ?? 0n;
     },

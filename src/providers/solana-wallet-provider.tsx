@@ -1,7 +1,4 @@
-import {
-  type Adapter,
-  WalletAdapterNetwork,
-} from "@solana/wallet-adapter-base";
+import { type Adapter } from "@solana/wallet-adapter-base";
 import {
   ConnectionProvider,
   WalletProvider,
@@ -14,14 +11,15 @@ import {
 import { clusterApiUrl } from "@solana/web3.js";
 import { type FC, PropsWithChildren, useMemo } from "react";
 
-import { DEVNET_RPC_URL } from "@/config";
+import { useNetwork } from "@/contexts/network-context";
 
 import "@solana/wallet-adapter-react-ui/styles.css";
 
 export const SolanaWalletProvider: FC<PropsWithChildren> = ({ children }) => {
+  const { config } = useNetwork();
   const endpoint = useMemo(
-    () => DEVNET_RPC_URL || clusterApiUrl(WalletAdapterNetwork.Devnet),
-    [],
+    () => config.rpcUrl || clusterApiUrl(config.network),
+    [config],
   );
 
   const wallets = useMemo(() => {

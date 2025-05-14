@@ -21,6 +21,7 @@ import {
   webRegularMintSplToken,
 } from "@/services/spl-token/web-confirm";
 import { MintViewData } from "@/types";
+import { useNetwork } from "@/contexts/network-context";
 
 interface MintSplProps {
   compressionEnabled?: boolean;
@@ -28,6 +29,9 @@ interface MintSplProps {
 
 export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
   const { state, fetchBalance, balance } = useWalletContext();
+  const {
+    config: { rpcConnection },
+  } = useNetwork();
 
   const { sendTransaction, signTransaction } = useWallet();
 
@@ -62,12 +66,14 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
               decimals: decimalsNumber,
               signTransaction,
               sendTransaction,
+              rpcConnection,
             });
           } else {
             result = await compressedMintSplToken({
               payer: state.keypair,
               mintAmount: mintAmountNumber,
               decimals: decimalsNumber,
+              rpcConnection,
             });
           }
         } else {
@@ -81,12 +87,14 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
               decimals: decimalsNumber,
               signTransaction,
               sendTransaction,
+              rpcConnection,
             });
           } else {
             result = await regularMintSplToken({
               payer: state.keypair,
               mintAmount: mintAmountNumber,
               decimals: decimalsNumber,
+              rpcConnection,
             });
           }
         }
@@ -118,7 +126,14 @@ export default function MintSpl({ compressionEnabled = false }: MintSplProps) {
         setIsMinting(false);
       }
     },
-    [compressionEnabled, fetchBalance, sendTransaction, signTransaction, state],
+    [
+      compressionEnabled,
+      fetchBalance,
+      sendTransaction,
+      signTransaction,
+      state,
+      rpcConnection,
+    ],
   );
 
   const clearForm = () => {

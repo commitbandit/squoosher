@@ -13,6 +13,7 @@ import bs58 from "bs58";
 
 import { getSolanaNativeBalance } from "@/services/balance-service";
 import { getAirdropSol } from "@/services/airdrop-sol";
+import { useNetwork } from "@/contexts/network-context";
 
 type Balance = {
   readable: number;
@@ -46,6 +47,7 @@ const initialBalance = {
 };
 
 export const PayerProvider = ({ children }: { children: ReactNode }) => {
+  const { config } = useNetwork();
   const [payer, setPayer] = useState<Keypair>(Keypair.generate());
   const [balance, setBalance] = useState<Balance>(initialBalance);
 
@@ -54,27 +56,31 @@ export const PayerProvider = ({ children }: { children: ReactNode }) => {
     setBalance(initialBalance);
   }, []);
 
-  const fetchSolBalance = useCallback(async (publicKey: PublicKey) => {
-    try {
-      const balance = await getSolanaNativeBalance({
-        publicKey,
-      });
+  const fetchSolBalance = useCallback(
+    async (publicKey: PublicKey) => {
+      try {
+        const balance = await getSolanaNativeBalance({
+          publicKey,
+          rpcConnection: config.rpcConnection,
+        });
 
-      if (!balance) throw new Error("Balance is null");
-      const obj = {
-        readable: Number(balance) / LAMPORTS_PER_SOL,
-        big: balance,
-      };
+        if (!balance) throw new Error("Balance is null");
+        const obj = {
+          readable: Number(balance) / LAMPORTS_PER_SOL,
+          big: balance,
+        };
 
-      setBalance(obj);
+        setBalance(obj);
 
-      return obj;
-    } catch (error) {
-      console.error("Error fetching payer balance:", error);
+        return obj;
+      } catch (error) {
+        console.error("Error fetching payer balance:", error);
 
-      return initialBalance;
-    }
-  }, []);
+        return initialBalance;
+      }
+    },
+    [config.rpcConnection],
+  );
 
   const importPrivateKey = useCallback((privateKeyString: string) => {
     try {
@@ -117,7 +123,10 @@ export const PayerProvider = ({ children }: { children: ReactNode }) => {
 
   const airdropSol = useCallback(async () => {
     try {
-      const signature = await getAirdropSol(payer.publicKey);
+      const signature = await getAirdropSol(
+        payer.publicKey,
+        config.rpcConnection,
+      );
 
       return signature;
     } catch (error) {
@@ -125,7 +134,7 @@ export const PayerProvider = ({ children }: { children: ReactNode }) => {
 
       return null;
     }
-  }, [payer.publicKey]);
+  }, [payer.publicKey, config.rpcConnection]);
 
   const value = useMemo(
     () => ({

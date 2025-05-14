@@ -7,7 +7,7 @@ import {
   TransactionSignature,
   Connection,
 } from "@solana/web3.js";
-import { createRpc, pickRandomTreeAndQueue } from "@lightprotocol/stateless.js";
+import { pickRandomTreeAndQueue, Rpc } from "@lightprotocol/stateless.js";
 import { CompressedTokenProgram } from "@lightprotocol/compressed-token";
 import {
   ExtensionType,
@@ -29,10 +29,10 @@ import {
 } from "@solana/spl-token-metadata";
 import { SendTransactionOptions } from "@solana/wallet-adapter-base";
 
-import { DEVNET_RPC_URL } from "@/config";
 import { MintViewData } from "@/types";
 
 type MintData = {
+  rpcConnection: Rpc;
   mintAmount: number;
   decimals: number;
   name: string;
@@ -59,6 +59,7 @@ export const webCompressedMintSplToken2022 = async ({
   additionalMetadata,
   payer,
   sendTransaction,
+  rpcConnection,
 }: MintData): Promise<MintViewData> => {
   const mint = Keypair.generate();
 
@@ -72,9 +73,7 @@ export const webCompressedMintSplToken2022 = async ({
     additionalMetadata,
   };
 
-  const connection = createRpc(DEVNET_RPC_URL, DEVNET_RPC_URL, DEVNET_RPC_URL);
-
-  const activeStateTrees = await connection.getCachedActiveStateTreeInfo();
+  const activeStateTrees = await rpcConnection.getCachedActiveStateTreeInfo();
   const { tree } = pickRandomTreeAndQueue(activeStateTrees);
 
   const metadataExtension = TYPE_SIZE + LENGTH_SIZE;
@@ -83,7 +82,7 @@ export const webCompressedMintSplToken2022 = async ({
 
   const mintLen = getMintLen([ExtensionType.MetadataPointer]);
 
-  const mintLamports = await connection.getMinimumBalanceForRentExemption(
+  const mintLamports = await rpcConnection.getMinimumBalanceForRentExemption(
     mintLen + metadataExtension + metadataLen,
   );
 
@@ -132,7 +131,7 @@ export const webCompressedMintSplToken2022 = async ({
     createTokenPoolIx,
   );
 
-  const createMintSimulation = await connection.simulateTransaction(
+  const createMintSimulation = await rpcConnection.simulateTransaction(
     createMintTransaction,
   );
 
@@ -140,7 +139,7 @@ export const webCompressedMintSplToken2022 = async ({
 
   const createMintTransactionSignature = await sendTransaction(
     createMintTransaction,
-    connection,
+    rpcConnection,
     {
       signers: [mint],
     },
@@ -184,13 +183,13 @@ export const webCompressedMintSplToken2022 = async ({
   );
 
   const mintToSimulation =
-    await connection.simulateTransaction(mintToTransaction);
+    await rpcConnection.simulateTransaction(mintToTransaction);
 
   console.log("mintToSimulation", mintToSimulation);
 
   const mintToTransactionSignature = await sendTransaction(
     mintToTransaction,
-    connection,
+    rpcConnection,
   );
 
   // 3 COMPRESS
@@ -210,13 +209,13 @@ export const webCompressedMintSplToken2022 = async ({
   );
 
   const compressSimulation =
-    await connection.simulateTransaction(compressTransaction);
+    await rpcConnection.simulateTransaction(compressTransaction);
 
   console.log("compressSimulation", compressSimulation);
 
   const compressTransactionSignature = await sendTransaction(
     compressTransaction,
-    connection,
+    rpcConnection,
   );
 
   return {
@@ -240,6 +239,7 @@ export const webRegularMintSplToken2022 = async ({
   additionalMetadata,
   payer,
   sendTransaction,
+  rpcConnection,
 }: MintData): Promise<MintViewData> => {
   const mint = Keypair.generate();
 
@@ -254,15 +254,13 @@ export const webRegularMintSplToken2022 = async ({
     additionalMetadata,
   };
 
-  const connection = createRpc(DEVNET_RPC_URL, DEVNET_RPC_URL, DEVNET_RPC_URL);
-
   const metadataExtension = TYPE_SIZE + LENGTH_SIZE;
 
   const metadataLen = pack(metadata).length;
 
   const mintLen = getMintLen([ExtensionType.MetadataPointer]);
 
-  const mintLamports = await connection.getMinimumBalanceForRentExemption(
+  const mintLamports = await rpcConnection.getMinimumBalanceForRentExemption(
     mintLen + metadataExtension + metadataLen,
   );
 
@@ -311,7 +309,7 @@ export const webRegularMintSplToken2022 = async ({
     initializeMetadataInstruction,
   );
 
-  const createMintSimulation = await connection.simulateTransaction(
+  const createMintSimulation = await rpcConnection.simulateTransaction(
     createMintTransaction,
   );
 
@@ -319,7 +317,7 @@ export const webRegularMintSplToken2022 = async ({
 
   const createMintTransactionSignature = await sendTransaction(
     createMintTransaction,
-    connection,
+    rpcConnection,
     {
       signers: [mint],
     },
@@ -363,13 +361,13 @@ export const webRegularMintSplToken2022 = async ({
   );
 
   const mintToSimulation =
-    await connection.simulateTransaction(mintToTransaction);
+    await rpcConnection.simulateTransaction(mintToTransaction);
 
   console.log("mintToTransactionSimulation", mintToSimulation);
 
   const mintToTransactionSignature = await sendTransaction(
     mintToTransaction,
-    connection,
+    rpcConnection,
   );
 
   console.log(`mint-spl-token-2022 success! txId: ${mintToTransaction}`);
