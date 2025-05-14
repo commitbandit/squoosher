@@ -8,6 +8,8 @@ import { useConnection } from "@solana/wallet-adapter-react";
 import { AccountInfo, ParsedAccountData } from "@solana/web3.js";
 import { useQuery } from "@tanstack/react-query";
 
+import { QUERY_KEYS } from "@/constants/query-keys";
+
 export enum TokenType {
   STANDARD = "SPL",
   STANDARD_COMPRESSED = "SPL (Compressed)",
@@ -72,7 +74,7 @@ export const useSplMetadata = (
 
   return useQuery({
     enabled: !!splBalances && splBalances.length > 0,
-    queryKey: ["spl-metadata"],
+    queryKey: [QUERY_KEYS.SPL_METADATA],
     queryFn: async () => {
       if (!splBalances)
         throw new Error("No public key found or spl balances not found");

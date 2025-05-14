@@ -3,12 +3,13 @@
 import { motion } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 
+import { TransactionViewer } from "../transaction-viewer";
+
 import TokenSelector from "./TokenSelector";
 import FormCard from "./components/FormCard";
 import AmountInput from "./components/AmountInput";
 import RecipientInput from "./components/RecipientInput";
 import FormActions from "./components/FormActions";
-import TransactionResult from "./components/TransactionResult";
 import { useTransferForm } from "./hooks/useTransferForm";
 
 export default function TransferForm() {
@@ -62,7 +63,12 @@ export default function TransferForm() {
         />
       </FormCard>
 
-      {transactionHash && <TransactionResult hash={transactionHash} />}
+      {transactionHash && (
+        <TransactionViewer
+          className="mt-6"
+          transactions={{ transferHash: transactionHash }}
+        />
+      )}
     </motion.div>
   );
 }

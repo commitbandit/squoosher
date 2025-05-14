@@ -7,6 +7,7 @@ import { ParsedTokenAccount } from "@lightprotocol/stateless.js";
 import { TokenType, WalletToken } from "./use-spl-metadata";
 
 import { useNetwork } from "@/contexts/network-context";
+import { QUERY_KEYS } from "@/constants/query-keys";
 
 interface TokenMetadataState {
   name?: string;
@@ -28,7 +29,7 @@ export const useCompressedMetadata = (
 
   return useQuery<WalletToken[]>({
     enabled: !!compressedBalances && compressedBalances.length > 0,
-    queryKey: ["compressed-metadata"],
+    queryKey: [QUERY_KEYS.COMPRESSED_METADATA],
     queryFn: async () => {
       if (!compressedBalances)
         throw new Error("No public key or compressed balances found");

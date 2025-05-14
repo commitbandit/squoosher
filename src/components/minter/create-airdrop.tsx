@@ -9,7 +9,7 @@ import { Account } from "@solana/spl-token";
 import { Select, SelectItem } from "@heroui/react";
 
 import { useWalletContext } from "@/contexts/wallet-context";
-import { useTokens } from "@/hooks/use-spl-metadata";
+import { useSplMetadata } from "@/hooks/use-spl-metadata";
 
 interface MintData {
   mint: PublicKey;
@@ -20,7 +20,7 @@ interface MintData {
 }
 
 export default function AirdropForm() {
-  const { data: userTokens, isLoading: isLoadingUserTokens } = useTokens();
+  const { data: userTokens, isLoading: isLoadingUserTokens } = useSplMetadata();
 
   console.log("userTokens", userTokens);
 

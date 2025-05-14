@@ -15,7 +15,7 @@ import {
   webRegularTransferSplToken,
 } from "@/services/transfer-token/web-confirm";
 import { useCompressedTokens } from "@/hooks/use-compressed-tokens";
-
+import { QUERY_KEYS } from "@/constants/query-keys";
 export const useTransferForm = (queryClient: QueryClient) => {
   const { data: compressedBalances } = useCompressedTokens();
   const { state } = useWalletContext();
@@ -87,7 +87,7 @@ export const useTransferForm = (queryClient: QueryClient) => {
             });
           }
           queryClient.invalidateQueries({
-            queryKey: ["spl-balances"],
+            queryKey: [QUERY_KEYS.SPL_TOKENS],
           });
           break;
         case TokenType.STANDARD_COMPRESSED:
@@ -128,7 +128,7 @@ export const useTransferForm = (queryClient: QueryClient) => {
             });
           }
           queryClient.invalidateQueries({
-            queryKey: ["compressed-metadata"],
+            queryKey: [QUERY_KEYS.COMPRESSED_TOKENS],
           });
           break;
         default:
