@@ -1,48 +1,51 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@heroui/button";
 import { Card, CardBody, CardHeader, CardFooter } from "@heroui/card";
 import { Input } from "@heroui/input";
 import { Form } from "@heroui/form";
 import { motion } from "framer-motion";
 import { cn } from "@heroui/react";
+import { PublicKey } from "@solana/web3.js";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { useQueryClient } from "@tanstack/react-query";
+
+import { CopyIcon, LinkIcon } from "../icons";
 
 import TokenSelector from "./TokenSelector";
 
-import { WalletToken } from "@/hooks/use-spl-tokens";
+import { TokenType, WalletToken } from "@/hooks/use-spl-metadata";
+import { useWalletContext } from "@/contexts/wallet-context";
+import {
+  regularTransferSplToken,
+  compressedTransferSplToken,
+} from "@/services/transfer-token";
+import { useNetwork } from "@/contexts/network-context";
+import {
+  webCompressedTransferSplToken,
+  webRegularTransferSplToken,
+} from "@/services/transfer-token/web-confirm";
+import { useCompressedTokens } from "@/hooks/use-compressed-tokens";
+import { truncateAddress } from "@/utils/string";
 
 export default function TransferForm() {
+  const { data: compressedBalances } = useCompressedTokens();
+  const queryClient = useQueryClient();
+  const { state } = useWalletContext();
+  const {
+    config: { rpcConnection },
+  } = useNetwork();
+
+  const { sendTransaction } = useWallet();
+
   const [selectedToken, setSelectedToken] = useState<WalletToken | undefined>(
     undefined,
   );
   const [amount, setAmount] = useState("");
   const [recipient, setRecipient] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [recipientValid, setRecipientValid] = useState<boolean | null>(null);
-  const [amountValid, setAmountValid] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    if (recipient) {
-      const isValid = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(recipient);
-
-      setRecipientValid(isValid);
-    } else {
-      setRecipientValid(null);
-    }
-  }, [recipient]);
-
-  useEffect(() => {
-    if (amount && selectedToken) {
-      const isValid =
-        parseFloat(amount) > 0 &&
-        parseFloat(amount) <= parseFloat(selectedToken.amount);
-
-      setAmountValid(isValid);
-    } else {
-      setAmountValid(null);
-    }
-  }, [amount, selectedToken]);
+  const [transactionHash, setTransactionHash] = useState<string | null>(null);
 
   const setMaxAmount = () => {
     if (selectedToken) {
@@ -50,32 +53,112 @@ export default function TransferForm() {
     }
   };
 
-  //TODO: Implement token transfer logic
+  const clearForm = () => {
+    setSelectedToken(undefined);
+    setAmount("");
+    setRecipient("");
+    setTransactionHash(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (
-      !selectedToken ||
-      !amount ||
-      !recipient ||
-      !recipientValid ||
-      !amountValid
-    ) {
-      return;
+    try {
+      if (!state) throw new Error("Wallet not connected");
+      if (!selectedToken || !amount || !recipient) {
+        throw new Error("Please fill all fields");
+      }
+
+      setIsLoading(true);
+      const { publicKey, keypair } = state;
+      let hash: string = "";
+
+      switch (selectedToken.type) {
+        case TokenType.STANDARD:
+        case TokenType.TOKEN_2022:
+          // for wallet with private key
+          if (keypair) {
+            hash = await regularTransferSplToken({
+              payer: keypair,
+              recipient: new PublicKey(recipient),
+              transferAmount: parseFloat(amount),
+              decimals: selectedToken.decimals,
+              rpcConnection,
+              mint: new PublicKey(selectedToken.mint),
+              tokenProgramId: new PublicKey(selectedToken.programId),
+            });
+          } else {
+            // for wallet with public key
+            hash = await webRegularTransferSplToken({
+              payer: publicKey,
+              recipient: new PublicKey(recipient),
+              transferAmount: parseFloat(amount),
+              decimals: selectedToken.decimals,
+              rpcConnection,
+              mint: new PublicKey(selectedToken.mint),
+              sendTransaction,
+              tokenProgramId: new PublicKey(selectedToken.programId),
+            });
+          }
+          queryClient.invalidateQueries({
+            queryKey: ["spl-balances"],
+          });
+          break;
+        case TokenType.STANDARD_COMPRESSED:
+        case TokenType.TOKEN_2022_COMPRESSED:
+          const isMaintenance = true;
+
+          if (isMaintenance) {
+            throw new Error("Maintenance mode is enabled");
+          }
+          // for wallet with private key
+          if (keypair) {
+            hash = await compressedTransferSplToken({
+              payer: keypair,
+              recipient: new PublicKey(recipient),
+              transferAmount: parseFloat(amount),
+              decimals: selectedToken.decimals,
+              rpcConnection,
+              mint: new PublicKey(selectedToken.mint),
+              tokenProgramId: new PublicKey(selectedToken.programId),
+            });
+          } else {
+            // for wallet with public key
+            const compressedToken = compressedBalances?.find(
+              (token) => token.parsed.mint.toBase58() === selectedToken.mint,
+            );
+
+            if (!compressedToken) throw new Error("Compressed token not found");
+            hash = await webCompressedTransferSplToken({
+              payer: publicKey,
+              recipient: new PublicKey(recipient),
+              transferAmount: parseFloat(amount),
+              decimals: selectedToken.decimals,
+              rpcConnection,
+              mint: new PublicKey(selectedToken.mint),
+              sendTransaction,
+              tokenProgramId: new PublicKey(selectedToken.programId),
+              parsedAccount: compressedToken,
+            });
+          }
+          queryClient.invalidateQueries({
+            queryKey: ["compressed-metadata"],
+          });
+          break;
+        default:
+          break;
+      }
+
+      setTransactionHash(hash);
+      console.log("Transaction hash:", hash);
+    } catch (error) {
+      console.error("Error sending token:", error);
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(true);
-
-    console.log("Sending token:", {
-      token: selectedToken,
-      amount,
-      recipient,
-    });
-    setIsLoading(false);
   };
 
-  const isFormValid =
-    selectedToken && amount && recipient && recipientValid && amountValid;
+  const isFormValid = selectedToken && amount && recipient;
 
   return (
     <motion.div
@@ -100,8 +183,8 @@ export default function TransferForm() {
             </p>
           </motion.div>
         </CardHeader>
-        <CardBody className="px-8 py-4">
-          <Form className="space-y-8 grid grid-cols-1" onSubmit={handleSubmit}>
+        <Form onSubmit={handleSubmit}>
+          <CardBody className="px-8 py-4 space-y-2 grid grid-cols-1">
             <TokenSelector
               selectedToken={selectedToken}
               onTokenSelect={setSelectedToken}
@@ -153,15 +236,20 @@ export default function TransferForm() {
                     </div>
                   }
                   type="number"
+                  validate={(value) => {
+                    if (!selectedToken) return "Select a token first";
+                    if (!value) return "Amount is required";
+                    if (parseFloat(value) <= 0)
+                      return "Amount must be greater than 0";
+                    if (parseFloat(value) > parseFloat(selectedToken.amount))
+                      return "Amount must be less than or equal to the token balance";
+
+                    return null;
+                  }}
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                 />
               </div>
-              {amountValid === false && (
-                <p className="text-xs text-red-500 mt-1">
-                  Invalid amount. Please check your balance.
-                </p>
-              )}
             </div>
 
             <div>
@@ -178,15 +266,6 @@ export default function TransferForm() {
                   label: "text-default-700 font-semibold",
                 }}
                 description="Enter the Solana wallet address of the recipient"
-                endContent={
-                  recipientValid !== null && (
-                    <div
-                      className={`flex items-center text-lg ${recipientValid ? "text-green-500" : "text-red-500"}`}
-                    >
-                      {recipientValid ? "✓" : "✗"}
-                    </div>
-                  )
-                }
                 id="recipient-input"
                 labelPlacement="outside"
                 placeholder="Solana wallet address"
@@ -196,44 +275,102 @@ export default function TransferForm() {
                   </div>
                 }
                 type="text"
+                validate={(value) => {
+                  if (!value) return "Recipient address is required";
+                  if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value))
+                    return "Invalid Solana wallet address";
+
+                  return null;
+                }}
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
               />
-              {recipientValid === false && (
-                <p className="text-xs text-red-500 mt-1">
-                  Invalid Solana wallet address
-                </p>
-              )}
             </div>
-          </Form>
-        </CardBody>
-        <CardFooter className="px-8 py-6 bg-gradient-to-r from-purple-50 to-blue-50">
-          <Button
-            isDisabled
-            className={cn(
-              "w-full font-bold py-6 text-lg transition-all duration-300 rounded-xl",
-              isFormValid ? "" : "bg-gray-200 text-gray-400 cursor-not-allowed",
-            )}
-            color={isFormValid ? "secondary" : "default"}
-            isLoading={isLoading}
-            radius="lg"
-            startContent={
-              !isLoading &&
-              isFormValid && <span className="text-xl animate-pulse">✨</span>
-            }
-            type="submit"
-            variant={isFormValid ? "flat" : "solid"}
-            // isDisabled={!isFormValid || isLoading}
-          >
-            SOON
-            {/* {isLoading
-              ? "Processing..."
-              : isFormValid
-                ? "Send Tokens"
-                : "Complete All Fields"} */}
-          </Button>
-        </CardFooter>
+          </CardBody>
+          <CardFooter className="px-8 py-6 bg-gradient-to-r from-purple-50 to-blue-50">
+            <div className="flex justify-between items-center w-full gap-3">
+              <Button
+                className="font-semibold transition-transform active:scale-95"
+                color="default"
+                isDisabled={isLoading}
+                radius="lg"
+                startContent={<span>↩️</span>}
+                type="reset"
+                variant="flat"
+                onPress={clearForm}
+              >
+                Reset
+              </Button>
+              <Button
+                className={cn(
+                  "w-full font-bold transition-all duration-300",
+                  isFormValid
+                    ? ""
+                    : "bg-gray-200 text-gray-400 cursor-not-allowed",
+                )}
+                color={isFormValid ? "secondary" : "default"}
+                isDisabled={!isFormValid || isLoading}
+                isLoading={isLoading}
+                radius="lg"
+                startContent={
+                  !isLoading &&
+                  isFormValid && (
+                    <span className="text-xl animate-pulse">✨</span>
+                  )
+                }
+                type="submit"
+                variant={isFormValid ? "flat" : "solid"}
+              >
+                {isLoading
+                  ? "Processing..."
+                  : isFormValid
+                    ? "Send Tokens"
+                    : "Complete All Fields"}
+              </Button>
+            </div>
+          </CardFooter>
+        </Form>
       </Card>
+
+      {transactionHash && (
+        <Card className="mt-8 p-4">
+          <CardHeader>
+            <h3 className="text-xl font-bold mb-3">Transaction Hash</h3>
+          </CardHeader>
+          <CardBody className="flex flex-row items-center justify-between bg-gradient-to-r from-purple-50 to-blue-50 p-2 rounded-lg">
+            <p className="font-mono text-sm text-gray-600">
+              {truncateAddress(transactionHash)}
+            </p>
+            <div className="flex gap-1">
+              <Button
+                isIconOnly
+                className="bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors border-none"
+                radius="full"
+                size="sm"
+                variant="bordered"
+                onPress={() => {
+                  navigator.clipboard.writeText(transactionHash);
+                }}
+              >
+                <CopyIcon size={16} />
+              </Button>
+              <Button
+                isIconOnly
+                as="a"
+                className="bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors border-none"
+                href={`https://explorer.solana.com/tx/${transactionHash}?cluster=devnet`}
+                radius="full"
+                rel="noopener noreferrer"
+                size="sm"
+                target="_blank"
+                variant="bordered"
+              >
+                <LinkIcon size={16} />
+              </Button>
+            </div>
+          </CardBody>
+        </Card>
+      )}
     </motion.div>
   );
 }

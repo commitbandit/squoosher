@@ -9,7 +9,7 @@ import { Account } from "@solana/spl-token";
 import { Select, SelectItem } from "@heroui/react";
 
 import { useWalletContext } from "@/contexts/wallet-context";
-import { useTokens } from "@/hooks/use-spl-tokens";
+import { useTokens } from "@/hooks/use-spl-metadata";
 
 interface MintData {
   mint: PublicKey;

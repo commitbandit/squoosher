@@ -1,7 +1,5 @@
-import {
-  Rpc,
-  transfer as transferLightProtocol,
-} from "@lightprotocol/stateless.js";
+import { Rpc } from "@lightprotocol/stateless.js";
+import { transfer as transferLightProtocol } from "@lightprotocol/compressed-token";
 import {
   transfer as transferSpl,
   getOrCreateAssociatedTokenAccount,
@@ -9,33 +7,60 @@ import {
 import { Keypair, PublicKey } from "@solana/web3.js";
 
 type MintData = {
-  tokenAddress: PublicKey;
+  mint: PublicKey;
   payer: Keypair;
   recipient: PublicKey;
-  mintAmount: number;
+  transferAmount: number;
   decimals: number;
   rpcConnection: Rpc;
+  tokenProgramId: PublicKey;
 };
 
 export const compressedTransferSplToken = async ({
-  // tokenAddress,
+  mint,
   payer,
   recipient,
-  mintAmount,
+  transferAmount,
   decimals,
   rpcConnection,
+  // tokenProgramId,
 }: MintData): Promise<string> => {
-  //TODO: getOrCreateAssociatedTokenAccount ata for compressed token address??
-  //TODO: where is the compressed token address?
+  // const sourceAta = await getOrCreateAssociatedTokenAccount(
+  // rpcConnection, // connection
+  // payer, // payer
+  // mint, // mint
+  // payer.publicKey, // owner
+  // undefined, // allowOwnerOffCurve
+  // undefined, // commitment
+  // undefined, // confirmOptions
+  // tokenProgramId, // programId
+  // );
+
+  // console.log(`source ATA: ${sourceAta.address}`);
+
+  // const destinationAta = await getOrCreateAssociatedTokenAccount(
+  //   rpcConnection, // connection
+  //   payer, // payer
+  //   mint, // mint
+  //   recipient, // owner
+  //   undefined, // allowOwnerOffCurve
+  //   undefined, // commitment
+  //   undefined, // confirmOptions
+  //   tokenProgramId, // programId
+  // );
+
+  // console.log(`destination ATA: ${destinationAta.address}`);
+
   const transferTransactionSignature = await transferLightProtocol(
     rpcConnection, // rpc
     payer, // payer
-    mintAmount * 10 ** decimals, // amount
+    mint, // mint
+    transferAmount * 10 ** decimals, // amount
     payer, // owner
     recipient, // toAddress
   );
 
-  console.log(`Transferred ${mintAmount} tokens using compressed approach`);
+  console.log(`Transferred ${transferAmount} tokens using compressed approach`);
 
   return transferTransactionSignature;
 };
@@ -43,25 +68,34 @@ export const compressedTransferSplToken = async ({
 export const regularTransferSplToken = async ({
   payer,
   recipient,
-  mintAmount,
+  transferAmount,
   decimals,
   rpcConnection,
-  tokenAddress,
+  mint,
+  tokenProgramId,
 }: MintData): Promise<string> => {
-  const ata = await getOrCreateAssociatedTokenAccount(
-    rpcConnection,
-    payer,
-    tokenAddress,
-    payer.publicKey,
+  const sourceAta = await getOrCreateAssociatedTokenAccount(
+    rpcConnection, // connection
+    payer, // payer
+    mint, // mint
+    payer.publicKey, // owner
+    undefined, // allowOwnerOffCurve
+    undefined, // commitment
+    undefined, // confirmOptions
+    tokenProgramId, // programId
   );
 
-  console.log(`source ATA: ${ata.address}`);
+  console.log(`source ATA: ${sourceAta.address}`);
 
   const destinationAta = await getOrCreateAssociatedTokenAccount(
-    rpcConnection,
-    payer,
-    tokenAddress,
-    recipient,
+    rpcConnection, // connection
+    payer, // payer
+    mint, // mint
+    recipient, // owner
+    undefined, // allowOwnerOffCurve
+    undefined, // commitment
+    undefined, // confirmOptions
+    tokenProgramId, // programId
   );
 
   console.log(`destination ATA: ${destinationAta.address}`);
@@ -69,14 +103,16 @@ export const regularTransferSplToken = async ({
   const transferTransactionSignature = await transferSpl(
     rpcConnection, // connection
     payer, // payer
-    ata.address, // source
+    sourceAta.address, // source
     destinationAta.address, // destination
     payer.publicKey, // owner
-    mintAmount * 10 ** decimals, // amount
+    transferAmount * 10 ** decimals, // amount
     [], // multiSigners
+    undefined, // confirmOptions
+    tokenProgramId, // programId
   );
 
-  console.log(`Transferred ${mintAmount} tokens using regular approach`);
+  console.log(`Transferred ${transferAmount} tokens using regular approach`);
 
   return transferTransactionSignature;
 };

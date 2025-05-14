@@ -1,10 +1,15 @@
-import { Rpc } from "@lightprotocol/stateless.js";
+import {
+  bn,
+  defaultStateTreeLookupTables,
+  getLightStateTreeInfo,
+  ParsedTokenAccount,
+  Rpc,
+} from "@lightprotocol/stateless.js";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountInstruction,
   createTransferInstruction,
   getAssociatedTokenAddress,
-  TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import {
   Connection,
@@ -14,83 +19,139 @@ import {
   VersionedTransaction,
 } from "@solana/web3.js";
 import { SendTransactionOptions } from "@solana/wallet-adapter-base";
+import {
+  CompressedTokenProgram,
+  selectMinCompressedTokenAccountsForTransfer,
+} from "@lightprotocol/compressed-token";
+import BN from "bn.js";
+
+import { checkATAExists } from "../checkATAExists";
 
 type MintData = {
   payer: PublicKey;
   recipient: PublicKey;
   transferAmount: number;
   decimals: number;
-  tokenAddress: PublicKey;
+  mint: PublicKey;
   sendTransaction: (
     transaction: Transaction | VersionedTransaction,
     connection: Connection,
     options?: SendTransactionOptions,
   ) => Promise<TransactionSignature>;
   rpcConnection: Rpc;
+  tokenProgramId: PublicKey;
 };
 
-//TODO: implement compressed web transfer
-export const webCompressedMintSplToken = async (
-  props: MintData,
-): Promise<string> => {
-  console.log("props", props);
-
-  return "";
-};
-
-export const webRegularMintSplToken = async ({
+export const webCompressedTransferSplToken = async ({
   payer,
   transferAmount,
   decimals,
   sendTransaction,
   rpcConnection,
   recipient,
-  tokenAddress,
+  parsedAccount,
+}: MintData & { parsedAccount: ParsedTokenAccount }): Promise<string> => {
+  const transferAmountBN = new BN(transferAmount * 10 ** decimals);
+
+  const [selectedAccounts] = selectMinCompressedTokenAccountsForTransfer(
+    [parsedAccount],
+    transferAmountBN,
+  );
+
+  const { compressedProof, rootIndices } = await rpcConnection.getValidityProof(
+    selectedAccounts.map((account) => bn(account.compressedAccount.hash)),
+  );
+
+  //TODO: config for devnet, mainnet
+  const stateTreeLookupTables = await getLightStateTreeInfo({
+    connection: rpcConnection,
+    stateTreeLookupTableAddress:
+      defaultStateTreeLookupTables().devnet[0].stateTreeLookupTable,
+    nullifyTableAddress: defaultStateTreeLookupTables().devnet[0].nullifyTable,
+  });
+
+  const transaction = new Transaction({ feePayer: payer }).add(
+    await CompressedTokenProgram.transfer({
+      payer,
+      toAddress: recipient,
+      amount: transferAmountBN,
+      inputCompressedTokenAccounts: selectedAccounts,
+      outputStateTrees: stateTreeLookupTables.map((table) => table.tree),
+      recentValidityProof: compressedProof,
+      recentInputStateRootIndices: rootIndices,
+    }),
+  );
+
+  const transactionSimulation =
+    await rpcConnection.simulateTransaction(transaction);
+
+  console.log("transaction simulation", transactionSimulation);
+
+  const transactionSignature = await sendTransaction(
+    transaction,
+    rpcConnection,
+  );
+
+  return transactionSignature;
+};
+
+export const webRegularTransferSplToken = async ({
+  payer,
+  transferAmount,
+  decimals,
+  sendTransaction,
+  rpcConnection,
+  recipient,
+  mint,
+  tokenProgramId,
 }: MintData): Promise<string> => {
   const sourceAssociatedToken = await getAssociatedTokenAddress(
-    tokenAddress,
+    mint,
     payer,
-    false,
-    TOKEN_PROGRAM_ID,
+    undefined,
+    tokenProgramId,
     ASSOCIATED_TOKEN_PROGRAM_ID,
   );
 
-  const destinationAssociatedToken = await getAssociatedTokenAddress(
-    tokenAddress,
-    recipient,
-    false,
-    TOKEN_PROGRAM_ID,
-    ASSOCIATED_TOKEN_PROGRAM_ID,
-  );
+  const { exists: destinationExists, ata: destinationAssociatedToken } =
+    await checkATAExists(rpcConnection, mint, recipient, tokenProgramId);
 
-  const destinationTokenTransaction = new Transaction({ feePayer: payer }).add(
-    createAssociatedTokenAccountInstruction(
-      payer,
-      destinationAssociatedToken,
-      payer,
-      tokenAddress,
-      TOKEN_PROGRAM_ID,
-      ASSOCIATED_TOKEN_PROGRAM_ID,
-    ),
-  );
+  const transaction = new Transaction({ feePayer: payer });
 
-  await sendTransaction(destinationTokenTransaction, rpcConnection);
+  if (!destinationExists) {
+    console.log("create associated token account instruction");
+    transaction.add(
+      createAssociatedTokenAccountInstruction(
+        payer,
+        destinationAssociatedToken,
+        recipient,
+        mint,
+        tokenProgramId,
+        ASSOCIATED_TOKEN_PROGRAM_ID,
+      ),
+    );
+  }
 
-  const transferTransaction = new Transaction({ feePayer: payer }).add(
+  transaction.add(
     createTransferInstruction(
       sourceAssociatedToken,
       destinationAssociatedToken,
       payer,
       transferAmount * 10 ** decimals,
+      [],
+      tokenProgramId,
     ),
   );
 
-  const transferTransactionSignature = await sendTransaction(
-    transferTransaction,
+  const transactionSimulation =
+    await rpcConnection.simulateTransaction(transaction);
+
+  console.log("transaction simulation", transactionSimulation);
+
+  const transactionSignature = await sendTransaction(
+    transaction,
     rpcConnection,
   );
 
-  return transferTransactionSignature;
+  return transactionSignature;
 };
-
-//TODO: implement web transfer spl token 2022

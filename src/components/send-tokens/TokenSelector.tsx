@@ -6,15 +6,53 @@ import { cn } from "@heroui/react";
 
 import { ChevronDownIcon } from "../icons";
 
-import { TokenType, useSplTokens, WalletToken } from "@/hooks/use-spl-tokens";
+import {
+  TokenType,
+  useSplMetadata,
+  WalletToken,
+} from "@/hooks/use-spl-metadata";
 import { truncateAddress } from "@/utils/string";
+import { useCompressedMetadata } from "@/hooks/use-compressed-metadata";
 import { useCompressedTokens } from "@/hooks/use-compressed-tokens";
-import { useCompressedBalances } from "@/hooks/use-compressed-balances";
+import { useSplTokens } from "@/hooks/use-spl-tokens";
 
 interface TokenSelectorProps {
   onTokenSelect: (token: WalletToken) => void;
   selectedToken?: WalletToken;
 }
+
+const getTokenTypeStyles = (type: TokenType) => {
+  switch (type) {
+    case TokenType.STANDARD:
+      return {
+        bg: "bg-blue-100",
+        text: "text-blue-700",
+        icon: "🪙",
+        border: "border-blue-200",
+      };
+    case TokenType.STANDARD_COMPRESSED:
+      return {
+        bg: "bg-green-100",
+        text: "text-green-700",
+        icon: "🗜️",
+        border: "border-green-200",
+      };
+    case TokenType.TOKEN_2022:
+      return {
+        bg: "bg-indigo-100",
+        text: "text-indigo-700",
+        icon: "⚡",
+        border: "border-indigo-200",
+      };
+    case TokenType.TOKEN_2022_COMPRESSED:
+      return {
+        bg: "bg-green-100",
+        text: "text-green-700",
+        icon: "🗜️",
+        border: "border-green-200",
+      };
+  }
+};
 
 export default function TokenSelector({
   onTokenSelect,
@@ -24,15 +62,17 @@ export default function TokenSelector({
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<TokenType | "ALL">("ALL");
 
-  const { data: splTokens, isLoading: isSplTokensLoading } = useSplTokens();
-  const { data: compressedBalances } = useCompressedBalances();
+  const { data: splBalances, isLoading: isSplBalancesLoading } = useSplTokens();
+  const { data: splTokens } = useSplMetadata(splBalances);
+
+  const { data: compressedBalances } = useCompressedTokens();
   const { data: compressedTokens, isLoading: isCompressedTokensLoading } =
-    useCompressedTokens(compressedBalances);
+    useCompressedMetadata(compressedBalances);
 
   const tokens = useMemo(() => {
     return [...(splTokens || []), ...(compressedTokens || [])];
   }, [splTokens, compressedTokens]);
-  const isLoading = isSplTokensLoading || isCompressedTokensLoading;
+  const isLoading = isSplBalancesLoading || isCompressedTokensLoading;
 
   const tokenTypes = useMemo(() => {
     if (!tokens || tokens.length === 0) return [];
@@ -62,46 +102,6 @@ export default function TokenSelector({
       })
       .sort((a, b) => Number(b.amount) - Number(a.amount));
   }, [tokens, searchQuery, activeFilter]);
-
-  const getTokenTypeStyles = (type: TokenType) => {
-    switch (type) {
-      case TokenType.STANDARD:
-        return {
-          bg: "bg-blue-100",
-          text: "text-blue-700",
-          icon: "🪙",
-          border: "border-blue-200",
-        };
-      case TokenType.STANDARD_COMPRESSED:
-        return {
-          bg: "bg-green-100",
-          text: "text-green-700",
-          icon: "🗜️",
-          border: "border-green-200",
-        };
-      case TokenType.TOKEN_2022:
-        return {
-          bg: "bg-indigo-100",
-          text: "text-indigo-700",
-          icon: "⚡",
-          border: "border-indigo-200",
-        };
-      case TokenType.TOKEN_2022_COMPRESSED:
-        return {
-          bg: "bg-green-100",
-          text: "text-green-700",
-          icon: "🗜️",
-          border: "border-green-200",
-        };
-      case TokenType.COMPRESSED:
-        return {
-          bg: "bg-green-100",
-          text: "text-green-700",
-          icon: "🗜️",
-          border: "border-green-200",
-        };
-    }
-  };
 
   const handleSelect = (token: WalletToken) => {
     onTokenSelect(token);
@@ -284,19 +284,30 @@ export default function TokenSelector({
                 <div className="space-y-3">
                   {filteredTokens.map((token) => {
                     const styles = getTokenTypeStyles(token.type);
+                    const isCompressed =
+                      token.type === TokenType.STANDARD_COMPRESSED ||
+                      token.type === TokenType.TOKEN_2022_COMPRESSED;
 
                     return (
                       <Button
                         key={token.mint}
                         className={cn(
-                          "h-auto p-3 w-full flex items-center gap-3",
+                          "relative h-auto p-3 w-full flex items-center gap-3",
                           selectedToken?.mint === token.mint
                             ? `border-purple-300 bg-purple-50 hover:bg-purple-100`
-                            : `border-gray-100 bg-white hover:bg-gray-50`,
+                            : isCompressed
+                              ? `border-gray-100 bg-gray-50 opacity-40 cursor-not-allowed`
+                              : `border-gray-100 bg-white hover:bg-gray-50`,
                         )}
+                        isDisabled={isCompressed}
                         variant="ghost"
-                        onPress={() => handleSelect(token)}
+                        onPress={() => !isCompressed && handleSelect(token)}
                       >
+                        {isCompressed && (
+                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2  -translate-y-1/2 rotate-[30deg] text-xs px-2 py-0.5 rounded-full bg-warning-100 text-warning-700 border border-warning-200">
+                            Coming Soon
+                          </div>
+                        )}
                         <div
                           className={cn(
                             "rounded-full p-2 size-12 flex items-center justify-center",
@@ -338,6 +349,7 @@ export default function TokenSelector({
                                   },
                                 )}
                               </p>
+
                               <div
                                 className={`text-xs px-2 py-0.5 rounded-full inline-block ${styles.bg} ${styles.text}`}
                               >
