@@ -5,6 +5,8 @@ import { Card, CardBody } from "@heroui/card";
 import { Button } from "@heroui/button";
 import Image from "next/image";
 
+import CostCalculator from "@/components/cost-calculator";
+
 export default function Home() {
   return (
     <div className="space-y-16 py-8 max-w-7xl mx-auto px-4">
@@ -213,6 +215,26 @@ export default function Home() {
               </ul>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Cost Calculator */}
+      <div className="rounded-2xl overflow-hidden bg-white shadow-xl">
+        <div className="h-3 bg-gradient-to-r from-purple-400 to-pink-500" />
+        <div className="p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <h2 className="text-2xl font-bold text-purple-700">
+              Cost Savings Calculator
+            </h2>
+          </div>
+
+          <p className="text-gray-600 mb-8">
+            See how much you can save using ZK compression for your token
+            program. Adjust the number of accounts to calculate potential cost
+            savings.
+          </p>
+
+          <CostCalculator />
         </div>
       </div>
     </div>

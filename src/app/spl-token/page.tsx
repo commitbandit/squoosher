@@ -5,9 +5,9 @@ import { Tabs, Tab } from "@heroui/tabs";
 import { Card, CardBody } from "@heroui/card";
 import { Divider } from "@heroui/divider";
 import Link from "next/link";
+import Image from "next/image";
 
 import MintSpl from "@/components/minter/mint-spl";
-import CostCalculator from "@/components/cost-calculator";
 import { PayerInfo } from "@/components/payer-info";
 
 export default function TokenProgramPage() {
@@ -16,17 +16,31 @@ export default function TokenProgramPage() {
   return (
     <div className="space-y-8 py-6 max-w-7xl mx-auto px-4">
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 shadow-lg text-white">
-        <h1 className="text-4xl font-bold mb-2 flex items-center">
-          TOKEN PROGRAM
-        </h1>
-        <p className="text-xl font-light opacity-90">
-          Standard Solana token program with optional ZK compression
-        </p>
+        <div className="flex flex-col md:flex-row items-center gap-8">
+          <div className="w-full md:w-2/3">
+            <h1 className="text-4xl font-bold mb-2 flex items-center">
+              TOKEN PROGRAM
+            </h1>
+            <p className="text-xl font-light opacity-90">
+              Standard Solana token program with optional ZK compression
+            </p>
+          </div>
+          <div className="w-full md:w-1/3 flex justify-center">
+            <div className="relative w-full h-64 transform hover:scale-105 transition-transform duration-300">
+              <Image
+                fill
+                alt="Squoosher SPL"
+                className="object-contain drop-shadow-lg"
+                src="/standing-squoosher-spl.webp"
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="md:col-span-1 order-2 md:order-1">
-          <Card className="border-none shadow-xl rounded-2xl overflow-hidden bg-white hover:shadow-2xl transition-all duration-300">
+          <Card className="border-none shadow-xl rounded-2xl overflow-hidden bg-white">
             <div className="h-3 bg-gradient-to-r from-blue-400 to-purple-500" />
             <CardBody className="space-y-5 p-6">
               <div className="transform -translate-y-2">
@@ -150,13 +164,6 @@ export default function TokenProgramPage() {
               </Tabs>
             </CardBody>
           </Card>
-
-          <div className="mt-8">
-            <Card className="border-none shadow-xl rounded-2xl overflow-hidden">
-              <div className="h-3 bg-gradient-to-r from-blue-400 to-purple-500" />
-              <CostCalculator />
-            </Card>
-          </div>
 
           <Card className="border-none shadow-xl rounded-2xl overflow-hidden mt-8">
             <div className="h-3 bg-gradient-to-r from-blue-400 to-purple-500" />
